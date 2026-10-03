@@ -524,6 +524,13 @@ body.oni-party #arcade-fx .oni-row-star {animation:treasure-fall 2.4s linear inf
   #question-type-group,#note-count-group{min-width:0;flex:1 1 0;}
 }
 .ending-dialog .ending-ok{margin:12px auto;}
+
+.trial-dialog,.ending-dialog{scroll-behavior:auto;}
+.trial-languages{display:flex;justify-content:center;gap:10px;margin:14px 0;}
+.trial-languages button[aria-pressed="true"]{background:#ffe38c;color:#352909;border-color:#fff2b9;}
+@media(max-width:650px) and (orientation:portrait){
+  .coral-greeting{display:block;}
+}
 </style>
 </head>
 <body>
@@ -2825,7 +2832,7 @@ body.oni-party #arcade-fx .oni-row-star {animation:treasure-fall 2.4s linear inf
   endingDialog.className='ending-dialog';
   endingDialog.setAttribute('aria-labelledby','ending-title');
   endingDialog.setAttribute('aria-describedby','ending-invitation');
-  const endingTitle=document.createElement('h2');endingTitle.id='ending-title';endingTitle.textContent='15問おつかれさま！';
+  const endingTitle=document.createElement('h2');endingTitle.id='ending-title';endingTitle.tabIndex=-1;endingTitle.setAttribute('autofocus','');endingTitle.textContent='15問おつかれさま！';
   const endingBadge=document.createElement('div');endingBadge.className='ending-badge';endingBadge.textContent='★ 15 QUESTIONS COMPLETE ★';
   const endingCharacter=document.createElement('img');endingCharacter.className='ending-character';endingCharacter.src=mascotImage;endingCharacter.alt='再チャレンジを応援する海の魔法使い・コーラル';
   const invitation=document.createElement('div');invitation.id='ending-invitation';invitation.className='oni-speech';invitation.textContent='他のモードにも挑戦だ〜！';
@@ -2855,16 +2862,18 @@ body.oni-party #arcade-fx .oni-row-star {animation:treasure-fall 2.4s linear inf
     [startButton,replayButton,playChordBtn,instrumentSelect,questionTypeSelect,noteCountSelect,firstNoteControls].forEach(control=>{control.disabled=true;});
     document.body.classList.add('game-cleared');
     endingMute.disabled=appSettings.sound!=='exists';
+    endingBadge.textContent=appSettings.lang==='on'?'★ 15 QUESTIONS COMPLETE ★':'★ 全15問 終了 ★';
+    endingCharacter.alt=appSettings.lang==='on'?'Coral cheering you on for another round':'再チャレンジを応援する海の魔法使い・コーラル';
     endingTitle.textContent=appSettings.lang==='on'?'Thanks for playing 15 questions!':'15問おつかれさま！';
     invitation.textContent=appSettings.lang==='on'
-      ? (trialStats.best>=15 ? 'Coral: A perfect streak! Try another instrument or a different first-note setting for your next 15 questions!' : 'Coral: Let’s try again and aim for 15 correct in a row! Listen as often as you like and build your streak♪')
-      : (trialStats.best>=15 ? 'コーラル「15連続正解、すごいね！ 次は楽器や最初の音の設定を変えて、もう一度チャレンジしよう♪」' : 'コーラル「次は15連続正解をめざして再チャレンジしよう♪ 何度も聴きながら、少しずつ連続正解を増やしてね！」');
+      ? (trialStats.best>=15 ? 'A perfect streak! Try another instrument or a different first-note setting for your next 15 questions!' : 'Let’s try again and aim for 15 correct in a row! Listen as often as you like and build your streak♪')
+      : (trialStats.best>=15 ? '15連続正解、すごいね！ 次は楽器や最初の音の設定を変えて、もう一度チャレンジしよう♪' : '次は15連続正解をめざして再チャレンジしよう♪ 何度も聴きながら、少しずつ連続正解を増やしてね！');
     endingFull.textContent=appSettings.lang==='on'?'The full version also includes 3/4-note chords, scales, and melodies.':'フル版では3音・4音のコード、スケール、メロディにも挑戦できるよ！';
     endingOK.textContent=appSettings.lang==='on'?'Try another 15 questions':'もう一度15問にチャレンジ';
     trialPurchase.textContent=appSettings.lang==='on'?'Purchase link coming soon':'購入ページのリンクは準備中';
     endingStats.textContent=appSettings.lang==='on'?`Correct: ${trialStats.correct} / 15 · Best streak: ${trialStats.best}`:`15問中 ${trialStats.correct}問正解 ／ 最高 ${trialStats.best}連続正解`;
     endingMute.textContent=appSettings.lang==='on'?'Stop music':'音楽を止める';
-    endingDialog.showModal();endingOK.focus();
+    showPopupFromTop(endingDialog,endingTitle);
     try {playOniPartyMusic(true);}catch(error){console.warn('Ending music unavailable',error);}
   }
   function returnToGameStart() {
@@ -3006,6 +3015,12 @@ body.oni-party #arcade-fx .oni-row-star {animation:treasure-fall 2.4s linear inf
   updateStaticTexts();
   syncArcadeUI();
 
+  function showPopupFromTop(dialog,heading){
+    dialog.showModal();
+    heading.focus({preventScroll:true});
+    dialog.scrollTop=0;
+    requestAnimationFrame(()=>{if(dialog.open) dialog.scrollTop=0;});
+  }
   // Keep option indexes for the existing language controls while restricting the trial.
   [questionTypeSelect,noteCountSelect].forEach(select=>{
     [...select.options].slice(1).forEach(option=>{option.disabled=true;option.hidden=true;});
@@ -3016,27 +3031,40 @@ body.oni-party #arcade-fx .oni-row-star {animation:treasure-fall 2.4s linear inf
   trialBar.append(trialLabel,trialHelp);document.querySelector('.studio-header').after(trialBar);
   const trialIntro=document.createElement('dialog');trialIntro.className='trial-dialog';trialIntro.setAttribute('aria-labelledby','trial-title');
   const coral=document.createElement('img');coral.src=mascotImage;coral.alt='海の魔法使い・コーラル';
-  const introTitle=document.createElement('h2');introTitle.id='trial-title';
+  const introTitle=document.createElement('h2');introTitle.id='trial-title';introTitle.tabIndex=-1;introTitle.setAttribute('autofocus','');
   const introText=document.createElement('p');
   const introPath=document.createElement('p');introPath.className='trial-path';
   const introFull=document.createElement('p');
   const introStart=document.createElement('button');introStart.type='button';introStart.className='primary-btn';
-  trialIntro.append(coral,introTitle,introText,introPath,introFull,introStart);document.body.append(trialIntro);
+  const introLanguages=document.createElement('div');introLanguages.className='trial-languages';introLanguages.setAttribute('role','group');
+  const introJapanese=document.createElement('button');introJapanese.type='button';introJapanese.textContent='日本語';
+  const introEnglish=document.createElement('button');introEnglish.type='button';introEnglish.textContent='English';
+  introLanguages.append(introJapanese,introEnglish);
+  function selectTrialLanguage(lang){
+    appSettings.lang=lang;updateSettingsUI();updateStaticTexts();syncArcadeUI();
+    trialIntro.scrollTop=0;
+  }
+  introJapanese.addEventListener('click',()=>selectTrialLanguage('off'));
+  introEnglish.addEventListener('click',()=>selectTrialLanguage('on'));
+  trialIntro.append(coral,introTitle,introLanguages,introText,introPath,introFull,introStart);document.body.append(trialIntro);
   function updateTrialText(){
     const en=appSettings.lang==='on';
     trialLabel.textContent=en?'TRIAL · Chord / 2 notes · 15 questions per round':'お試し版 · コード／2音 · 全15問';
     trialHelp.textContent=en?'Coral’s guide':'コーラルのガイド';
-    introTitle.textContent=en?'Welcome! I’m Coral.':'こんにちは！ コーラルだよ♪';
+    introTitle.innerHTML=en?'Welcome! I’m Coral.':'こんにちは！<span class="coral-greeting"> コーラルだよ♪</span>';
+    coral.alt=en?'Coral, the sea magician':'海の魔法使い・コーラル';
+    introLanguages.setAttribute('aria-label',en?'Language':'言語');
+    introJapanese.setAttribute('aria-pressed',String(!en));introEnglish.setAttribute('aria-pressed',String(en));
     introText.textContent=en?'Press Start Game, listen to the two notes, then tap the fretboard in the order you heard them. Follow the on-screen prompts. Listen Again and Show Answer can help you practice.':'「ゲームスタート」を押して2つの音を聴いたら、画面の案内に合わせて、聴こえた順に指板をタップしてね。「もう一度聴く」「正解を確認する」も使って練習しよう！';
     introPath.textContent=en?'5 in a row: FEVER → 10: SUPER HOT · Results after 15 questions':'5連続でフィーバー → 10連続で激アツ！ 全15問で結果発表';
     introFull.textContent=en?'Every round ends after 15 answers, including mistakes. Mistakes reset your streak, and you can replay as often as you like. All three instruments and settings are available. Streaks are tracked per instrument. The full version adds 3/4-note chords, scales and melodies. Purchase link coming soon.':'正解・不正解にかかわらず15問で結果発表だよ。間違えたら連続正解は0から再スタート。何度でも再チャレンジしてね。楽器3種類や速度などの設定は全部使えるよ！ 連続正解は楽器ごとに記録されるよ。フル版では3音・4音のコード、スケール、メロディにも挑戦できるんだ♪ 購入リンクは準備中だよ。';
     introStart.textContent=en?'Let’s play!':'さっそく遊ぶ';
   }
   introStart.addEventListener('click',()=>{trialIntro.close();startButton.focus();});
-  trialHelp.addEventListener('click',()=>{updateTrialText();trialIntro.showModal();introStart.focus();});
+  trialHelp.addEventListener('click',()=>{updateTrialText();showPopupFromTop(trialIntro,introTitle);});
   const originalUpdateStaticTexts=updateStaticTexts;
   updateStaticTexts=function(){originalUpdateStaticTexts();updateTrialText();};
-  updateTrialText();trialIntro.showModal();introStart.focus();
+  updateTrialText();showPopupFromTop(trialIntro,introTitle);
 
   </script>
 
