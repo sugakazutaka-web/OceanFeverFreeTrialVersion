@@ -550,6 +550,37 @@ body.oni-party #arcade-fx .oni-row-star {animation:treasure-fall 2.4s linear inf
   .instrument {height:100%;min-height:0;}
   body[data-instrument="guitar"] .instrument {height:100%;min-height:466px;}
 }
+
+/* A viewport-sized landscape workspace, with 16 SVG units above/below the board and an undistorted aspect ratio. */
+@media(min-width:651px) and (orientation:landscape){
+  main,body[data-instrument="guitar"] main {
+    height:100dvh;min-height:0;
+    padding:max(14px,env(safe-area-inset-top)) max(20px,env(safe-area-inset-right)) max(12px,env(safe-area-inset-bottom)) max(20px,env(safe-area-inset-left));
+    grid-template-columns:minmax(0,1fr) minmax(350px,.88fr);
+    grid-template-rows:42px 44px 226px minmax(0,1fr) 26px;gap:8px 12px;
+  }
+  .studio-header{padding-bottom:10px;}
+  .trial-bar{grid-row:2;padding:3px 10px;min-width:0;}
+  .settings-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:10px 12px;min-height:0;}
+  #instrument-group,#question-type-group,#note-count-group{min-width:0;width:100%;grid-row:1;}
+  #instrument-group{grid-column:1;}#question-type-group{grid-column:2;}#note-count-group{grid-column:3;}
+  .settings-popup,.settings-popup.active{grid-column:1/-1;grid-row:2;width:100%;padding-top:8px;gap:8px 10px;}
+  .top-controls{padding:10px 14px;min-height:0;}
+  .instrument,body[data-instrument="guitar"] .instrument {
+    grid-row:4;height:100%;min-height:0;padding:5px 10px;
+    grid-template-rows:16px minmax(0,1fr) 20px 12px;gap:2px;
+  }
+  .board-shell,body[data-instrument="guitar"] .board-shell{height:100%;min-height:0;}
+  .board-track,body[data-instrument="guitar"] .board-track{width:100%;height:100%;min-width:0;}
+  .board-crop,body[data-instrument="guitar"] .board-crop{flex:1;width:100%;height:100%;min-height:0;}
+  #fretboard,body[data-instrument="guitar"] #fretboard{width:100%;height:100%;min-height:0;margin:0;}
+  .hint{grid-row:5;min-width:0;}
+  .instrument-legend{margin-top:0;}
+}
+/* Short browser windows scroll instead of collapsing the playable strings. */
+@media(min-width:651px) and (max-height:559px) and (orientation:landscape){
+  main,body[data-instrument="guitar"] main{height:auto;min-height:560px;grid-template-rows:42px 44px 226px 174px 26px;}
+}
 </style>
 </head>
 <body>
@@ -663,7 +694,6 @@ body.oni-party #arcade-fx .oni-row-star {animation:treasure-fall 2.4s linear inf
       <div class="hint">
         <div id="deck-counter">連続正解数：0/5　 EASY MODE</div>
       </div>
-      <footer class="studio-footer"><span>LOW FREQUENCIES. HIGH FOCUS.</span><span>HEADPHONES RECOMMENDED</span></footer>
     </main>
   </div>
 
@@ -2314,11 +2344,16 @@ body.oni-party #arcade-fx .oni-row-star {animation:treasure-fall 2.4s linear inf
       }
     }));
 
+    function updateBoardViewport() {
+      const landscape=window.matchMedia('(min-width:651px) and (orientation:landscape)').matches;
+      svg.setAttribute('viewBox', landscape ? `0 ${y0-16} 1020 ${boardHeight+32}` : `0 0 1020 ${boardHeight+120}`);
+      svg.setAttribute('preserveAspectRatio','xMidYMid meet');
+    }
     function buildFretboard() {
       svg.replaceChildren();
       positions.length = 0;
       boardHeight = strings.length * 55;
-      svg.setAttribute('viewBox', `0 0 1020 ${boardHeight + 120}`);
+      updateBoardViewport();
       document.body.dataset.instrument = instrumentMode;
     svg.append(node('rect', { x: x0, y: y0, width: boardWidth, height: boardHeight, fill: '#4c2d20' }));
     for (let fret = 0; fret <= frets; fret++) {
@@ -2470,7 +2505,7 @@ body.oni-party #arcade-fx .oni-row-star {animation:treasure-fall 2.4s linear inf
       }
     });
     // Keep scrolling within the actual board after a viewport resize.
-    window.addEventListener('resize', () => setBoardScroll(boardShell.scrollLeft));
+    window.addEventListener('resize', () => {updateBoardViewport();setBoardScroll(boardShell.scrollLeft);});
     document.addEventListener('keydown', event => { if (event.key === 'Escape') settingsPopup.classList.remove('active'); });
 
   </script>
