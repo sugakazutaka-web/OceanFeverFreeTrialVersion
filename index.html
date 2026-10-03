@@ -534,6 +534,22 @@ body.oni-party #arcade-fx .oni-row-star {animation:treasure-fall 2.4s linear inf
 /* The introductory heading receives focus to keep the dialog at the top.
    It is static text; interactive buttons retain their keyboard focus rings. */
 #trial-title:focus, #trial-title:focus-visible { outline:none; box-shadow:none; }
+
+/* Match the full edition's landscape board row independently of trial UI.
+   Full layout: header 42 + controls 310 + counter 48 + gaps 24 + padding 26.
+   Minimum viewport layout height is 830px (four strings) / 930px (guitar). */
+@media(min-width:651px) and (min-height:501px) and (orientation:landscape){
+  main {
+    --full-board-height:calc(max(830px,100dvh) - 450px);
+    grid-template-rows:42px auto minmax(310px,auto) var(--full-board-height) auto;
+    align-content:start;
+  }
+  body[data-instrument="guitar"] main {
+    --full-board-height:calc(max(930px,100dvh) - 450px);
+  }
+  .instrument {height:100%;min-height:0;}
+  body[data-instrument="guitar"] .instrument {height:100%;min-height:466px;}
+}
 </style>
 </head>
 <body>
@@ -2530,7 +2546,7 @@ body.oni-party #arcade-fx .oni-row-star {animation:treasure-fall 2.4s linear inf
     stopArcadeAudio();
   }
   function syncResidentMascot() {
-    residentMascot.hidden=!arcadeEnabled;
+    residentMascot.hidden=true;
   }
   function syncArcadeUI() {
     updatePowerUI();
