@@ -531,6 +531,9 @@ body.oni-party #arcade-fx .oni-row-star {animation:treasure-fall 2.4s linear inf
 @media(max-width:650px) and (orientation:portrait){
   .coral-greeting{display:block;}
 }
+/* The introductory heading receives focus to keep the dialog at the top.
+   It is static text; interactive buttons retain their keyboard focus rings. */
+#trial-title:focus, #trial-title:focus-visible { outline:none; box-shadow:none; }
 </style>
 </head>
 <body>
