@@ -2864,10 +2864,12 @@ body.oni-party #arcade-fx .oni-row-star {animation:treasure-fall 2.4s linear inf
     endingMute.disabled=appSettings.sound!=='exists';
     endingBadge.textContent=appSettings.lang==='on'?'★ 15 QUESTIONS COMPLETE ★':'★ 全15問 終了 ★';
     endingCharacter.alt=appSettings.lang==='on'?'Coral cheering you on for another round':'再チャレンジを応援する海の魔法使い・コーラル';
-    endingTitle.textContent=appSettings.lang==='on'?'Thanks for playing 15 questions!':'15問おつかれさま！';
+    endingTitle.textContent=trialStats.best>=15
+      ? (appSettings.lang==='on'?'Congratulations!!':'ゲームクリア　おめでとう！！')
+      : (appSettings.lang==='on'?'Thanks for playing 15 questions!':'15問おつかれさま！');
     invitation.textContent=appSettings.lang==='on'
-      ? (trialStats.best>=15 ? 'A perfect streak! Try another instrument or a different first-note setting for your next 15 questions!' : 'Let’s try again and aim for 15 correct in a row! Listen as often as you like and build your streak♪')
-      : (trialStats.best>=15 ? '15連続正解、すごいね！ 次は楽器や最初の音の設定を変えて、もう一度チャレンジしよう♪' : '次は15連続正解をめざして再チャレンジしよう♪ 何度も聴きながら、少しずつ連続正解を増やしてね！');
+      ? (trialStats.best>=15 ? 'Let’s take on the other modes in the full version! Try 3- and 4-note chords, scales, and melodies!' : 'Let’s try again and aim for 15 correct in a row! Listen as often as you like and build your streak♪')
+      : (trialStats.best>=15 ? 'フルバージョンで他のモードに挑戦だ〜！ 3音・4音のコード、スケールやメロディも楽しんでね♪' : '次は15連続正解をめざして再チャレンジしよう♪ 何度も聴きながら、少しずつ連続正解を増やしてね！');
     endingFull.textContent=appSettings.lang==='on'?'The full version also includes 3/4-note chords, scales, and melodies.':'フル版では3音・4音のコード、スケール、メロディにも挑戦できるよ！';
     endingOK.textContent=appSettings.lang==='on'?'Try another 15 questions':'もう一度15問にチャレンジ';
     trialPurchase.textContent=appSettings.lang==='on'?'Purchase link coming soon':'購入ページのリンクは準備中';
@@ -3055,7 +3057,7 @@ body.oni-party #arcade-fx .oni-row-star {animation:treasure-fall 2.4s linear inf
     coral.alt=en?'Coral, the sea magician':'海の魔法使い・コーラル';
     introLanguages.setAttribute('aria-label',en?'Language':'言語');
     introJapanese.setAttribute('aria-pressed',String(!en));introEnglish.setAttribute('aria-pressed',String(en));
-    introText.textContent=en?'Press Start Game, listen to the two notes, then tap the fretboard in the order you heard them. Follow the on-screen prompts. Listen Again and Show Answer can help you practice.':'「ゲームスタート」を押して2つの音を聴いたら、画面の案内に合わせて、聴こえた順に指板をタップしてね。「もう一度聴く」「正解を確認する」も使って練習しよう！';
+    introText.textContent=en?'Press Start Game, listen to the two notes, then tap the fretboard in the order you heard them. Follow the on-screen prompts. Listen Again and Show Answer can help you practice.':'「問題を出す」を押して2つの音を聴いたら、画面の案内に合わせて、聴こえた順に指板をタップしてね。「もう一度聴く」「正解を確認する」も使って練習しよう！';
     introPath.textContent=en?'5 in a row: FEVER → 10: SUPER HOT · Results after 15 questions':'5連続でフィーバー → 10連続で激アツ！ 全15問で結果発表';
     introFull.textContent=en?'Every round ends after 15 answers, including mistakes. Mistakes reset your streak, and you can replay as often as you like. All three instruments and settings are available. Streaks are tracked per instrument. The full version adds 3/4-note chords, scales and melodies. Purchase link coming soon.':'正解・不正解にかかわらず15問で結果発表だよ。間違えたら連続正解は0から再スタート。何度でも再チャレンジしてね。楽器3種類や速度などの設定は全部使えるよ！ 連続正解は楽器ごとに記録されるよ。フル版では3音・4音のコード、スケール、メロディにも挑戦できるんだ♪ 購入リンクは準備中だよ。';
     introStart.textContent=en?'Let’s play!':'さっそく遊ぶ';
