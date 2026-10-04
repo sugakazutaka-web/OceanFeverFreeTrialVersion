@@ -329,7 +329,7 @@ body.fx-off .top-controls,body.fx-off .instrument { animation:none;}
 .instrument-heading { margin-bottom:8px;}
 .board-navigation { padding-top:4px;}
 .instrument-legend { margin-top:3px;}
-.arcade-banner.fever-start { border-color:#fff3a9; background:linear-gradient(135deg,#84511af0,#5c245bee,#18395cf5); box-shadow:0 0 45px #ffd95966,inset 0 0 20px #ffc83933; animation:prize-in 3.8s ease both;}
+.arcade-banner.fever-start { border-color:#fff3a9; background:linear-gradient(135deg,#84511af0,#5c245bee,#18395cf5); box-shadow:0 0 45px #ffd95966,inset 0 0 20px #ffc83933; animation:prize-in 3.0s ease both;}
 .arcade-banner.fever-start strong { font-size:clamp(27px,4.7vw,58px);}
 .fever-start-stars { margin-top:10px; color:#fff0a5; font-size:26px; text-shadow:0 0 15px #ffe378; letter-spacing:5px;}
 #arcade-fx { isolation:isolate;}
@@ -580,6 +580,18 @@ body.oni-party #arcade-fx .oni-row-star {animation:treasure-fall 2.4s linear inf
 /* Short browser windows scroll instead of collapsing the playable strings. */
 @media(min-width:651px) and (max-height:559px) and (orientation:landscape){
   main,body[data-instrument="guitar"] main{height:auto;min-height:560px;grid-template-rows:42px 44px 226px 174px 26px;}
+}
+
+#ending-title:focus,#ending-title:focus-visible{outline:none;box-shadow:none;}
+.ending-congratulations-line:before{content:"　";}
+.ending-dialog .trial-stats{font-size:17px;line-height:1.7;}
+.trial-dialog p{font-size:16px;line-height:1.8;}
+.trial-dialog .trial-path{white-space:pre-line;}
+.intro-version,.trial-dialog .primary-btn{display:block;width:100%;margin:14px auto 0;}
+.intro-link-note{display:block;margin-top:6px;color:#b3d9e8;font-size:12px;}
+@media(max-width:650px) and (orientation:portrait){
+  .ending-congratulations-line{display:block;}
+  .ending-congratulations-line:before{content:none;}
 }
 </style>
 </head>
@@ -2918,12 +2930,12 @@ body.oni-party #arcade-fx .oni-row-star {animation:treasure-fall 2.4s linear inf
     endingMute.disabled=appSettings.sound!=='exists';
     endingBadge.textContent=appSettings.lang==='on'?'★ 15 QUESTIONS COMPLETE ★':'★ 全15問 終了 ★';
     endingCharacter.alt=appSettings.lang==='on'?'Coral cheering you on for another round':'再チャレンジを応援する海の魔法使い・コーラル';
-    endingTitle.textContent=trialStats.best>=15
-      ? (appSettings.lang==='on'?'Congratulations!!':'ゲームクリア　おめでとう！！')
+    endingTitle.innerHTML=trialStats.best>=15
+      ? (appSettings.lang==='on'?'Congratulations!!':'ゲームクリア<span class="ending-congratulations-line">おめでとう！！</span>')
       : (appSettings.lang==='on'?'Thanks for playing 15 questions!':'15問おつかれさま！');
     invitation.textContent=appSettings.lang==='on'
-      ? (trialStats.best>=15 ? 'Let’s take on the other modes in the full version! Try 3- and 4-note chords, scales, and melodies!' : 'Let’s try again and aim for 15 correct in a row! Listen as often as you like and build your streak♪')
-      : (trialStats.best>=15 ? 'フルバージョンで他のモードに挑戦だ〜！ 3音・4音のコード、スケールやメロディも楽しんでね♪' : '次は15連続正解をめざして再チャレンジしよう♪ 何度も聴きながら、少しずつ連続正解を増やしてね！');
+      ? (trialStats.best>=15 ? 'Let’s take on the other modes in the full version!' : 'Let’s try again and aim for 15 correct in a row! Listen as often as you like and build your streak♪')
+      : (trialStats.best>=15 ? 'フルバージョンで他のモードに挑戦だー！' : '次は15連続正解をめざして再チャレンジしよう♪ 何度も聴きながら、少しずつ連続正解を増やしてね！');
     endingFull.textContent=appSettings.lang==='on'?'The full version also includes 3/4-note chords, scales, and melodies.':'フル版では3音・4音のコード、スケール、メロディにも挑戦できるよ！';
     endingOK.textContent=appSettings.lang==='on'?'Try another 15 questions':'もう一度15問にチャレンジ';
     trialPurchase.textContent=appSettings.lang==='on'?'Purchase link coming soon':'購入ページのリンクは準備中';
@@ -3091,6 +3103,8 @@ body.oni-party #arcade-fx .oni-row-star {animation:treasure-fall 2.4s linear inf
   const introText=document.createElement('p');
   const introPath=document.createElement('p');introPath.className='trial-path';
   const introFull=document.createElement('p');
+  const introVersion=document.createElement('button');introVersion.type='button';introVersion.disabled=true;introVersion.className='intro-version';
+  const introLinkNote=document.createElement('small');introLinkNote.className='intro-link-note';
   const introStart=document.createElement('button');introStart.type='button';introStart.className='primary-btn';
   const introLanguages=document.createElement('div');introLanguages.className='trial-languages';introLanguages.setAttribute('role','group');
   const introJapanese=document.createElement('button');introJapanese.type='button';introJapanese.textContent='日本語';
@@ -3102,7 +3116,7 @@ body.oni-party #arcade-fx .oni-row-star {animation:treasure-fall 2.4s linear inf
   }
   introJapanese.addEventListener('click',()=>selectTrialLanguage('off'));
   introEnglish.addEventListener('click',()=>selectTrialLanguage('on'));
-  trialIntro.append(coral,introTitle,introLanguages,introText,introPath,introFull,introStart);document.body.append(trialIntro);
+  trialIntro.append(coral,introTitle,introLanguages,introText,introPath,introFull,introVersion,introLinkNote,introStart);document.body.append(trialIntro);
   function updateTrialText(){
     const en=appSettings.lang==='on';
     trialLabel.textContent=en?'TRIAL · Chord / 2 notes · 15 questions per round':'お試し版 · コード／2音 · 全15問';
@@ -3111,9 +3125,11 @@ body.oni-party #arcade-fx .oni-row-star {animation:treasure-fall 2.4s linear inf
     coral.alt=en?'Coral, the sea magician':'海の魔法使い・コーラル';
     introLanguages.setAttribute('aria-label',en?'Language':'言語');
     introJapanese.setAttribute('aria-pressed',String(!en));introEnglish.setAttribute('aria-pressed',String(en));
-    introText.textContent=en?'Press Start Game, listen to the two notes, then tap the fretboard in the order you heard them. Follow the on-screen prompts. Listen Again and Show Answer can help you practice.':'「問題を出す」を押して2つの音を聴いたら、画面の案内に合わせて、聴こえた順に指板をタップしてね。「もう一度聴く」「正解を確認する」も使って練習しよう！';
-    introPath.textContent=en?'5 in a row: FEVER → 10: SUPER HOT · Results after 15 questions':'5連続でフィーバー → 10連続で激アツ！ 全15問で結果発表';
-    introFull.textContent=en?'Every round ends after 15 answers, including mistakes. Mistakes reset your streak, and you can replay as often as you like. All three instruments and settings are available. Streaks are tracked per instrument. The full version adds 3/4-note chords, scales and melodies. Purchase link coming soon.':'正解・不正解にかかわらず15問で結果発表だよ。間違えたら連続正解は0から再スタート。何度でも再チャレンジしてね。楽器3種類や速度などの設定は全部使えるよ！ 連続正解は楽器ごとに記録されるよ。フル版では3音・4音のコード、スケール、メロディにも挑戦できるんだ♪ 購入リンクは準備中だよ。';
+    introText.textContent=en?"I’m Coral, the sea magician. Here beneath the waves, I’ll use my magic to help you sharpen your ear for music. Playing is easy! Press ‘Start Game’ and listen to the two notes, then tap the fretboard in the order you heard them. If you make a mistake while answering, press ‘Listen Again’ to start your answer over.":"私は海の魔法使い、コラールだよ。この海の中で、私の魔法の力でみんなの音感をもっと良くしてあげる。ゲームの操作はかんたんだよ。「問題を出す」を押して2つの音を聴いたら、聴こえた順に指板をタップしてね。答える途中で間違えたら「もう一度聴く」でやり直せるよ。";
+    introPath.textContent=en?"Trial: 2-note chord questions only\nResults after 15 questions":"お試し版は2音のコード問題のみ\n全15問で結果発表";
+    introFull.textContent=en?"After five correct answers in a row, the questions get a little harder. You can switch between guitar and bass, change the playback speed, and more, so try different settings and play as often as you like. The full version also includes 3- and 4-note chords, scales, and melodies♪ If you’re interested, take a look at the link below.":"5問連続正解すると問題がちょっと難しくなるよ。ギターとベースの切り替えや問題の再生スピードの切り替えなどができるから、いろいろ試して何度でも遊んでね。ちなみにフルバージョンでは3音・4音のコード、スケール、メロディの問題にも挑戦できるんだ♪もしよかったらリンクを見てみてね。";
+    introVersion.textContent=en?'View the full version':'フルバージョンを見る';
+    introLinkNote.textContent=en?'Link coming soon':'リンクは準備中です';
     introStart.textContent=en?'Let’s play!':'さっそく遊ぶ';
   }
   introStart.addEventListener('click',()=>{trialIntro.close();startButton.focus();});
