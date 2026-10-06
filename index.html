@@ -374,7 +374,6 @@ body.oni-party #arcade-fx:before { content:''; position:absolute; inset:0; z-ind
 .ending-character { display:block; width:min(460px,49vh); height:min(460px,49vh); object-fit:contain; margin:0 auto; filter:drop-shadow(0 0 25px #b6eaff77);}
 .ending-dialog .oni-speech { font-size:clamp(17px,2.8vw,29px); padding:8px 18px;}
 .ending-ok { display:block; width:min(260px,90%); min-height:48px; margin:16px auto 0; font-size:18px;}
-.ending-mute { display:block; min-height:32px; padding:4px 10px; margin:8px auto 0; font-size:11px; border-color:#88b5d366; color:#c0dfed; background:#051b3955;}
 @media(max-height:650px) and (orientation:landscape) { .ending-dialog {padding:12px 24px;} .ending-character {width:42vh;height:42vh;} .ending-ok {margin-top:10px;min-height:42px;} .ending-dialog h2 {font-size:28px;margin-top:6px;} }
 @media(prefers-reduced-motion:reduce) { .arcade-banner.cheer {animation:none;} }
 
@@ -2918,13 +2917,11 @@ body.oni-party #arcade-fx .oni-row-star {animation:treasure-fall 2.4s linear inf
   const endingCharacter=document.createElement('img');endingCharacter.className='ending-character';endingCharacter.src=mascotImage;endingCharacter.alt='再チャレンジを応援する海の魔法使い・コーラル';
   const invitation=document.createElement('div');invitation.id='ending-invitation';invitation.className='oni-speech';invitation.textContent='他のモードにも挑戦だ〜！';
   const endingOK=document.createElement('button');endingOK.type='button';endingOK.className='ending-ok primary-btn';endingOK.textContent='OK';
-  const endingMute=document.createElement('button');endingMute.type='button';endingMute.className='ending-mute';endingMute.textContent='音楽を止める';
-  endingMute.addEventListener('click',()=>{stopArcadeAudio();endingMute.disabled=true;});
   const endingStats=document.createElement('p'); endingStats.className='trial-stats';
   const endingFull=document.createElement('p'); endingFull.className='trial-stats';
   const purchaseURLs={off:'https://electricbass.official.ec/items/158279041',on:'https://payhip.com/b/2OfjE'};
   const trialPurchase=document.createElement('a');trialPurchase.className='full-version-link';trialPurchase.target='_blank';trialPurchase.rel='noopener noreferrer';
-  endingDialog.append(endingBadge,endingTitle,endingCharacter,invitation,endingStats,endingFull,trialPurchase,endingOK,endingMute);
+  endingDialog.append(endingBadge,endingTitle,endingCharacter,invitation,endingStats,endingFull,trialPurchase,endingOK);
   document.body.append(endingDialog);
   endingDialog.addEventListener('cancel',event=>event.preventDefault());
   function scheduleGameEnding() {
@@ -2943,7 +2940,6 @@ body.oni-party #arcade-fx .oni-row-star {animation:treasure-fall 2.4s linear inf
     endingActive=true;game.phase='complete';
     [startButton,replayButton,playChordBtn,instrumentSelect,questionTypeSelect,noteCountSelect,firstNoteControls].forEach(control=>{control.disabled=true;});
     document.body.classList.add('game-cleared');
-    endingMute.disabled=appSettings.sound!=='exists';
     endingBadge.textContent=appSettings.lang==='on'?'★ 15 QUESTIONS COMPLETE ★':'★ 全15問 終了 ★';
     endingCharacter.alt=appSettings.lang==='on'?'Coral cheering you on for another round':'再チャレンジを応援する海の魔法使い・コーラル';
     endingTitle.innerHTML=trialStats.best>=15
@@ -2957,7 +2953,6 @@ body.oni-party #arcade-fx .oni-row-star {animation:treasure-fall 2.4s linear inf
     trialPurchase.textContent=appSettings.lang==='on'?'View the full version':'フルバージョンを見る';
     trialPurchase.href=purchaseURLs[appSettings.lang==='on'?'on':'off'];
     endingStats.textContent=appSettings.lang==='on'?`Correct: ${trialStats.correct} / 15`:`15問中 ${trialStats.correct}問正解`;
-    endingMute.textContent=appSettings.lang==='on'?'Stop music':'音楽を止める';
     showPopupFromTop(endingDialog,endingTitle);
     try {playOniPartyMusic(true);}catch(error){console.warn('Ending music unavailable',error);}
   }
