@@ -510,6 +510,7 @@ body.oni-party #arcade-fx .oni-row-star {animation:treasure-fall 2.4s linear inf
 .ending-dialog{max-height:92dvh;overflow:auto;}
 .ending-dialog .ending-character{width: min(180px,24vh);height:min(180px,24vh);}
 .ending-dialog .oni-speech{font-size:17px;line-height:1.7;}
+#ending-invitation{white-space:pre-line;}
 .ending-dialog .trial-stats{font-size:13px;}
 .ending-dialog button{margin:6px;}
 @media(min-width:651px) and (orientation:landscape){main{grid-template-rows:42px auto minmax(310px,auto) minmax(180px,1fr) auto;height:auto;min-height:100dvh}.top-controls,.settings-row{grid-row:3}}
@@ -593,6 +594,14 @@ body.oni-party #arcade-fx .oni-row-star {animation:treasure-fall 2.4s linear inf
   .ending-congratulations-line{display:block;}
   .ending-congratulations-line:before{content:none;}
 }
+/* Coral's upper-body portrait uses the existing transparent artwork. */
+.fever-coral{position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);width:clamp(86px,16vh,132px);aspect-ratio:1;overflow:hidden;pointer-events:none;filter:drop-shadow(0 3px 6px #001a3655);}
+.fever-coral img{position:absolute;max-width:none;width:165%;height:auto;left:-27%;top:0;}
+.arcade-banner.fever-start,.arcade-banner.hot{top:max(25%,calc(clamp(86px,16vh,132px) + 20px));}
+.trial-dialog p{white-space:pre-line;}
+.full-version-link{display:inline-block;padding:12px 18px;border:1px solid #ffe38c;border-radius:12px;background:#124866;color:#ffe99b;font-weight:700;text-decoration:none;box-sizing:border-box;}
+.full-version-link:hover{background:#1a5b7d;}
+.full-version-link:focus-visible{outline:3px solid #fff;outline-offset:3px;}
 </style>
 </head>
 <body>
@@ -2634,6 +2643,12 @@ body.oni-party #arcade-fx .oni-row-star {animation:treasure-fall 2.4s linear inf
       const blackout=document.createElement('div'); blackout.className='fever-blackout'; arcadeLayer.append(blackout);
     }
     if(kind==='hot' || kind==='oni') { const orbit=document.createElement('div'); orbit.className='fever-orbit'; arcadeLayer.append(orbit); }
+    if(kind==='unlock' || kind==='hot') {
+      const portrait=document.createElement('div');portrait.className='fever-coral';
+      const character=document.createElement('img');character.src=mascotImage;
+      character.alt=english?'Coral, the sea magician':'海の魔法使い・コーラル';
+      portrait.append(character);banner.append(portrait);
+    }
     banner.append(title, subtitle);
     if(kind==='unlock') { const stars=document.createElement('div'); stars.className='fever-start-stars'; stars.textContent='★ ★ ★ ★ ★'; banner.append(stars); }
     if(kind==='oni' || kind==='cheer30' || kind==='cheer40') {
@@ -2907,7 +2922,8 @@ body.oni-party #arcade-fx .oni-row-star {animation:treasure-fall 2.4s linear inf
   endingMute.addEventListener('click',()=>{stopArcadeAudio();endingMute.disabled=true;});
   const endingStats=document.createElement('p'); endingStats.className='trial-stats';
   const endingFull=document.createElement('p'); endingFull.className='trial-stats';
-  const trialPurchase=document.createElement('button'); trialPurchase.type='button';trialPurchase.disabled=true;trialPurchase.textContent='購入ページのリンクは準備中';
+  const purchaseURLs={off:'https://electricbass.official.ec/items/158279041',on:'https://payhip.com/b/2OfjE'};
+  const trialPurchase=document.createElement('a');trialPurchase.className='full-version-link';trialPurchase.target='_blank';trialPurchase.rel='noopener noreferrer';
   endingDialog.append(endingBadge,endingTitle,endingCharacter,invitation,endingStats,endingFull,trialPurchase,endingOK,endingMute);
   document.body.append(endingDialog);
   endingDialog.addEventListener('cancel',event=>event.preventDefault());
@@ -2931,15 +2947,16 @@ body.oni-party #arcade-fx .oni-row-star {animation:treasure-fall 2.4s linear inf
     endingBadge.textContent=appSettings.lang==='on'?'★ 15 QUESTIONS COMPLETE ★':'★ 全15問 終了 ★';
     endingCharacter.alt=appSettings.lang==='on'?'Coral cheering you on for another round':'再チャレンジを応援する海の魔法使い・コーラル';
     endingTitle.innerHTML=trialStats.best>=15
-      ? (appSettings.lang==='on'?'Congratulations!!':'ゲームクリア<span class="ending-congratulations-line">おめでとう！！</span>')
+      ? (appSettings.lang==='on'?'Game clear — congratulations!':'ゲームクリア<span class="ending-congratulations-line">おめでとう！</span>')
       : (appSettings.lang==='on'?'Thanks for playing 15 questions!':'15問おつかれさま！');
     invitation.textContent=appSettings.lang==='on'
-      ? (trialStats.best>=15 ? 'Let’s take on the other modes in the full version!' : 'Let’s try again and aim for 15 correct in a row! Listen as often as you like and build your streak♪')
-      : (trialStats.best>=15 ? 'フルバージョンで他のモードに挑戦だー！' : '次は15連続正解をめざして再チャレンジしよう♪ 何度も聴きながら、少しずつ連続正解を増やしてね！');
-    endingFull.textContent=appSettings.lang==='on'?'The full version also includes 3/4-note chords, scales, and melodies.':'フル版では3音・4音のコード、スケール、メロディにも挑戦できるよ！';
+      ? (trialStats.best>=15 ? 'Let’s take on the other modes in the full version!' : 'Let’s try again and aim for 15 correct in a row!\nListen as often as you like and build your streak♪')
+      : (trialStats.best>=15 ? 'フルバージョンで他のモードに挑戦だー！' : '次は15連続正解をめざして再チャレンジしよう♪\n何度も聴きながら、少しずつ連続正解を増やしてね！');
+    endingFull.textContent=appSettings.lang==='on'?'The full version also includes 3/4-note chords, scales, and melodies.':'フルバージョンでは3音・4音のコード、スケール、メロディにも挑戦できるよ！';
     endingOK.textContent=appSettings.lang==='on'?'Try another 15 questions':'もう一度15問にチャレンジ';
-    trialPurchase.textContent=appSettings.lang==='on'?'Purchase link coming soon':'購入ページのリンクは準備中';
-    endingStats.textContent=appSettings.lang==='on'?`Correct: ${trialStats.correct} / 15 · Best streak: ${trialStats.best}`:`15問中 ${trialStats.correct}問正解 ／ 最高 ${trialStats.best}連続正解`;
+    trialPurchase.textContent=appSettings.lang==='on'?'View the full version':'フルバージョンを見る';
+    trialPurchase.href=purchaseURLs[appSettings.lang==='on'?'on':'off'];
+    endingStats.textContent=appSettings.lang==='on'?`Correct: ${trialStats.correct} / 15`:`15問中 ${trialStats.correct}問正解`;
     endingMute.textContent=appSettings.lang==='on'?'Stop music':'音楽を止める';
     showPopupFromTop(endingDialog,endingTitle);
     try {playOniPartyMusic(true);}catch(error){console.warn('Ending music unavailable',error);}
@@ -3103,7 +3120,7 @@ body.oni-party #arcade-fx .oni-row-star {animation:treasure-fall 2.4s linear inf
   const introText=document.createElement('p');
   const introPath=document.createElement('p');introPath.className='trial-path';
   const introFull=document.createElement('p');
-  const introVersion=document.createElement('button');introVersion.type='button';introVersion.disabled=true;introVersion.className='intro-version';
+  const introVersion=document.createElement('a');introVersion.className='intro-version full-version-link';introVersion.target='_blank';introVersion.rel='noopener noreferrer';
   const introLinkNote=document.createElement('small');introLinkNote.className='intro-link-note';
   const introStart=document.createElement('button');introStart.type='button';introStart.className='primary-btn';
   const introLanguages=document.createElement('div');introLanguages.className='trial-languages';introLanguages.setAttribute('role','group');
@@ -3121,15 +3138,16 @@ body.oni-party #arcade-fx .oni-row-star {animation:treasure-fall 2.4s linear inf
     const en=appSettings.lang==='on';
     trialLabel.textContent=en?'TRIAL · Chord / 2 notes · 15 questions per round':'お試し版 · コード／2音 · 全15問';
     trialHelp.textContent=en?'Coral’s guide':'コーラルのガイド';
-    introTitle.innerHTML=en?'Welcome! I’m Coral.':'こんにちは！<span class="coral-greeting"> コーラルだよ♪</span>';
+    introTitle.innerHTML=en?'Hello!<br>I’m Coral,<br>the sea magician♪':'こんにちは！<br>私は海の魔法使い<br>コーラルだよ♪';
     coral.alt=en?'Coral, the sea magician':'海の魔法使い・コーラル';
     introLanguages.setAttribute('aria-label',en?'Language':'言語');
     introJapanese.setAttribute('aria-pressed',String(!en));introEnglish.setAttribute('aria-pressed',String(en));
-    introText.textContent=en?"I’m Coral, the sea magician. Here beneath the waves, I’ll use my magic to help you sharpen your ear for music. Playing is easy! Press ‘Start Game’ and listen to the two notes, then tap the fretboard in the order you heard them. If you make a mistake while answering, press ‘Listen Again’ to start your answer over.":"私は海の魔法使い、コラールだよ。この海の中で、私の魔法の力でみんなの音感をもっと良くしてあげる。ゲームの操作はかんたんだよ。「問題を出す」を押して2つの音を聴いたら、聴こえた順に指板をタップしてね。答える途中で間違えたら「もう一度聴く」でやり直せるよ。";
+    introText.textContent=en?"Let’s play together under the sea and improve your musical ear!\n\nPlaying is easy! Press ‘Start Game’ and listen to the two notes, then tap the fretboard in the order you heard them. If you make a mistake while answering, press ‘Listen Again’ to start your answer over.":"この海の中で、私と一緒にゲームして音感をもっと良くしちゃおう！\n\nゲームの操作は簡単だよ。「問題を出す」を押して2つの音を聴いたら、聴こえた順に指板をタップしてね。答える途中で間違えたら、「もう一度聴く」でやり直せるよ。";
     introPath.textContent=en?"Trial: 2-note chord questions only\nResults after 15 questions":"お試し版は2音のコード問題のみ\n全15問で結果発表";
-    introFull.textContent=en?"After five correct answers in a row, the questions get a little harder. You can switch between guitar and bass, change the playback speed, and more, so try different settings and play as often as you like. The full version also includes 3- and 4-note chords, scales, and melodies♪ If you’re interested, take a look at the link below.":"5問連続正解すると問題がちょっと難しくなるよ。ギターとベースの切り替えや問題の再生スピードの切り替えなどができるから、いろいろ試して何度でも遊んでね。ちなみにフルバージョンでは3音・4音のコード、スケール、メロディの問題にも挑戦できるんだ♪もしよかったらリンクを見てみてね。";
+    introFull.textContent=en?"After five correct answers in a row, the questions get a little harder. You can switch between guitar and bass, change the playback speed, and more, so try different settings and play as often as you like.\n\nBy the way, the full version also includes 3- and 4-note chords, scales, and melodies♪ If you’re interested, take a look at the link below.":"5問連続正解すると問題がちょっと難しくなるよ。ギターとベースの切り替えや問題の再生スピードの切り替えなどができるから、いろいろ試して何度でも遊んでね。\n\nちなみにフルバージョンでは3音・4音のコード、スケール、メロディの問題にも挑戦できるんだ♪もしよかったらリンクを見てみてね。";
     introVersion.textContent=en?'View the full version':'フルバージョンを見る';
-    introLinkNote.textContent=en?'Link coming soon':'リンクは準備中です';
+    introVersion.href=purchaseURLs[en?'on':'off'];
+    introLinkNote.hidden=true;
     introStart.textContent=en?'Let’s play!':'さっそく遊ぶ';
   }
   introStart.addEventListener('click',()=>{trialIntro.close();startButton.focus();});
