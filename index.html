@@ -2702,7 +2702,7 @@ body.oni-party #arcade-fx .oni-row-star {animation:treasure-fall 2.4s linear inf
     syncArcadeUI();
   };
   // A short synthesized fanfare / descending arcade effect, with a bounded master gain.
-  function playJudgmentSound(correct) {
+  function playJudgmentSound(correct, startFromG = false) {
     if (appSettings.sound !== 'exists' || document.hidden) return;
     stopArcadeAudio();
     const ctx = ensureAudio();
@@ -2738,25 +2738,27 @@ body.oni-party #arcade-fx .oni-row-star {animation:treasure-fall 2.4s linear inf
       osc.onended=()=>{osc.disconnect();gain.disconnect();};
       osc.start(now+offset);osc.stop(now+offset+duration+.02);voices.push(osc);
     }
-    if (celebrationKind === 'end') {
+    if (!startFromG && celebrationKind === 'end') {
       [76,71,67,62,55,48,40].forEach((note,i)=>tone(note,i*.17,.45,'triangle',.3,note-5));
       tone(38,.7,1.25,'sawtooth',.15,22);
       tone(88,0,1.3,'sine',.12,36);
-    } else if (correct && (celebrationKind === 'hot' || (celebrationKind === 'oni' && !oniPending))) {
+    } else if (!startFromG && correct && (celebrationKind === 'hot' || (celebrationKind === 'oni' && !oniPending))) {
       [60,64,67,72,76,79,84,88,91,96,91,96].forEach((note,i)=>tone(note,i*.075,.28,'triangle',.27));
       [60,64,67,72,79].forEach(note=>tone(note,.92,.95,'triangle',.19));
       [96,100,103,108].forEach((note,i)=>tone(note,1.0+i*.1,.35,'sine',.14));
 
     } else if (correct) {
-      [72,76,79,84,79,84,88,91].forEach((note,i)=>tone(note,i*.085,.22,'triangle',.3));
-      [60,64,67,72].forEach(note=>tone(note,.69,.75,'triangle',.21));
-      [96,91,88,84].forEach((note,i)=>tone(note,.82+i*.1,.28,'sine',.18));
+      const melody=startFromG?[79,84,88,91]:[72,76,79,84,79,84,88,91];
+      const shift=startFromG?4*.085:0;
+      melody.forEach((note,i)=>tone(note,i*.085,.22,'triangle',.3));
+      [60,64,67,72].forEach(note=>tone(note,.69-shift,.75,'triangle',.21));
+      [96,91,88,84].forEach((note,i)=>tone(note,.82-shift+i*.1,.28,'sine',.18));
     } else {
       [67,63,58].forEach((note,i)=>tone(note,i*.15,.27,'triangle',.35,note-3));
       tone(43,.4,.42,'sawtooth',.12,31);
       tone(79,.52,.25,'sine',.16,55);
     }
-    cleanup=setTimeout(stop, celebrationKind==='end' || celebrationKind==='hot' || celebrationKind==='oni' ? 2400 : 1700);
+    cleanup=setTimeout(stop, startFromG?1360:celebrationKind==='end' || celebrationKind==='hot' || celebrationKind==='oni' ? 2400 : 1700);
   };
 
   function scheduleOniParty() {
@@ -2943,7 +2945,7 @@ body.oni-party #arcade-fx .oni-row-star {animation:treasure-fall 2.4s linear inf
     endingBadge.textContent=appSettings.lang==='on'?'★ 15 QUESTIONS COMPLETE ★':'★ 全15問 終了 ★';
     endingCharacter.alt=appSettings.lang==='on'?'Coral cheering you on for another round':'再チャレンジを応援する海の魔法使い・コーラル';
     endingTitle.innerHTML=trialStats.best>=15
-      ? (appSettings.lang==='on'?'Game clear — congratulations!':'ゲームクリア<span class="ending-congratulations-line">おめでとう！</span>')
+      ? (appSettings.lang==='on'?'Congratulations!':'ゲームクリア<span class="ending-congratulations-line">おめでとう！</span>')
       : (appSettings.lang==='on'?'Thanks for playing 15 questions!':'15問おつかれさま！');
     invitation.textContent=appSettings.lang==='on'
       ? (trialStats.best>=15 ? 'Let’s take on the other modes in the full version!' : 'Let’s try again and aim for 15 correct in a row!\nListen as often as you like and build your streak♪')
@@ -3145,7 +3147,7 @@ body.oni-party #arcade-fx .oni-row-star {animation:treasure-fall 2.4s linear inf
     introLinkNote.hidden=true;
     introStart.textContent=en?'Let’s play!':'さっそく遊ぶ';
   }
-  introStart.addEventListener('click',()=>{trialIntro.close();startButton.focus();});
+  introStart.addEventListener('click',()=>{trialIntro.close();playJudgmentSound(true,true);startButton.focus();});
   trialHelp.addEventListener('click',()=>{updateTrialText();showPopupFromTop(trialIntro,introTitle);});
   const originalUpdateStaticTexts=updateStaticTexts;
   updateStaticTexts=function(){originalUpdateStaticTexts();updateTrialText();};
