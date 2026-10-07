@@ -601,6 +601,7 @@ body.oni-party #arcade-fx .oni-row-star {animation:treasure-fall 2.4s linear inf
 .full-version-link{display:inline-block;padding:12px 18px;border:1px solid #ffe38c;border-radius:12px;background:#124866;color:#ffe99b;font-weight:700;text-decoration:none;box-sizing:border-box;}
 .full-version-link:hover{background:#1a5b7d;}
 .full-version-link:focus-visible{outline:3px solid #fff;outline-offset:3px;}
+@media(orientation:portrait){#ending-invitation .trial-retry-line{display:block;}}
 </style>
 </head>
 <body>
@@ -1208,6 +1209,7 @@ body.oni-party #arcade-fx .oni-row-star {animation:treasure-fall 2.4s linear inf
     }]));
     let difficultyStates = instrumentProgress.guitar.difficulty;
     function difficulty() { return difficultyStates[questionTypeSelect.value]; }
+    let trialGeneration = 0;
     let trialStats = { total:0, correct:0, best:0 };
     function recordResult(correct) {
       const state = difficulty();
@@ -1340,10 +1342,11 @@ body.oni-party #arcade-fx .oni-row-star {animation:treasure-fall 2.4s linear inf
     }
 
     async function runPlayback(action) {
+      const generation=trialGeneration;
       try {
         await action();
       } catch (error) {
-        recoverPlayback(error);
+        if(generation===trialGeneration) recoverPlayback(error);
       }
     }
 
@@ -1593,12 +1596,14 @@ body.oni-party #arcade-fx .oni-row-star {animation:treasure-fall 2.4s linear inf
     }
 
     async function playChordArpeggio() {
+      const generation=trialGeneration;
       if (!['guess', 'result'].includes(game.phase) || game.mode === 'scale') return;
       if (!game.chordMidiNotes || game.chordMidiNotes.length === 0) return;
       playChordBtn.disabled = true;
       startButton.disabled = replayButton.disabled = true;
       instrumentSelect.disabled = questionTypeSelect.disabled = noteCountSelect.disabled = firstNoteControls.disabled = true;
       await unlockAudio();
+      if(generation!==trialGeneration) return;
 
       const sortedMidis = [...game.chordMidiNotes].sort((a, b) => a - b);
       const voiceScale = instrumentMode !== 'original' ? Math.min(1, 3 / sortedMidis.length) : 1;
@@ -1617,6 +1622,7 @@ body.oni-party #arcade-fx .oni-row-star {animation:treasure-fall 2.4s linear inf
 
       const totalWaitMs = (sortedMidis.length - 1) * intervalMs + (sustainTime * 1000);
       await wait(totalWaitMs);
+      if(generation!==trialGeneration) return;
 
       playChordBtn.disabled = false;
       startButton.disabled = replayButton.disabled = false;
@@ -2113,11 +2119,13 @@ body.oni-party #arcade-fx .oni-row-star {animation:treasure-fall 2.4s linear inf
     }
 
     async function playQuestion(includeChord = false, includeScaleKey = false) {
+      const generation=trialGeneration;
       if (!game.target.length) return;
       playChordBtn.disabled = true;
       startButton.disabled = replayButton.disabled = true;
       instrumentSelect.disabled = questionTypeSelect.disabled = noteCountSelect.disabled = firstNoteControls.disabled = true;
       await unlockAudio();
+      if(generation!==trialGeneration) return;
       activeVoices.forEach(stop => stop());
       const previousPhase = game.phase;
       game.phase = 'playing';
@@ -2145,12 +2153,14 @@ body.oni-party #arcade-fx .oni-row-star {animation:treasure-fall 2.4s linear inf
         setStatus(null, t('chordPlaying'));
         playChord(game.chordMidiNotes);
         await wait(getAdjustedTime(1500));
+      if(generation!==trialGeneration) return;
       } else if (game.mode === 'scale' && includeScaleKey && !isShowingResult) {
         highlightRootNotes(game.rootPitchIndex);
         setStatus(null, t('scalePlaying'));
         const firstNoteMidi = game.target[0].midi;
         play(firstNoteMidi, getAdjustedTime(1.05), 0.4, undefined, 'question');
         await wait(getAdjustedTime(1450));
+      if(generation!==trialGeneration) return;
       }
 
       for (let i = 0; i < total; i++) {
@@ -2193,9 +2203,11 @@ body.oni-party #arcade-fx .oni-row-star {animation:treasure-fall 2.4s linear inf
         }
 
         await wait(getAdjustedTime(beatMs * 1.3));
+      if(generation!==trialGeneration) return;
       }
 
       await wait(getAdjustedTime(400));
+      if(generation!==trialGeneration) return;
 
       if (previousPhase === 'result') {
         game.phase = 'result';
@@ -2690,7 +2702,7 @@ body.oni-party #arcade-fx .oni-row-star {animation:treasure-fall 2.4s linear inf
     if (isNewAnswer) {
       const state=difficulty();
       celebrationKind = trialStats.total>=15 ? 'clear' : wasHard && !state.hard ? 'end' : correct && state.correct===10 ? 'hot' : correct && !wasHard && state.hard ? 'unlock' : 'normal';
-      if(celebrationKind==='clear') scheduleGameEnding();
+      if(celebrationKind==='clear') {showArcadeResult(correct,false,'normal');scheduleGameEnding();}
       else if(celebrationKind==='cheer30' && ((game.mode==='chord' && appSettings.firstNote==='root') || (game.mode==='melody' && appSettings.melodyJazz==='off')) && arcadeEnabled && !document.hidden) beginRootChallenge();
       else if(celebrationKind==='oni' && arcadeEnabled && !document.hidden) {
         syncArcadeUI();
@@ -2950,7 +2962,12 @@ body.oni-party #arcade-fx .oni-row-star {animation:treasure-fall 2.4s linear inf
     invitation.textContent=appSettings.lang==='on'
       ? (trialStats.best>=15 ? 'Let’s take on the other modes in the full version!' : 'Let’s try again and aim for 15 correct in a row!\nListen as often as you like and build your streak♪')
       : (trialStats.best>=15 ? 'フルバージョンで他のモードに挑戦だー！' : '次は15連続正解をめざして再チャレンジしよう♪\n何度も聴きながら、少しずつ連続正解を増やしてね！');
-    endingFull.textContent=appSettings.lang==='on'?'The full version also includes 3/4-note chords, scales, and melodies.':'フルバージョンでは3音・4音のコード、スケール、メロディにも挑戦できるよ！';
+    if(appSettings.lang!=='on' && trialStats.best<15){
+      invitation.replaceChildren(document.createTextNode('次は15連続正解をめざして'));
+      const retry=document.createElement('span');retry.className='trial-retry-line';retry.textContent='再チャレンジしよう♪';
+      invitation.append(retry,document.createTextNode('\n何度も聴きながら、少しずつ連続正解を増やしてね！'));
+    }
+    endingFull.textContent=appSettings.lang==='on'?'The full version also includes 3/4-note chords, scales, and melodies.':'フルバージョンでは、”3音/4音のコード”、”スケール”、”メロディ”にも挑戦できるよ！';
     endingOK.textContent=appSettings.lang==='on'?'Try another 15 questions':'もう一度15問にチャレンジ';
     trialPurchase.textContent=appSettings.lang==='on'?'View the full version':'フルバージョンを見る';
     trialPurchase.href=purchaseURLs[appSettings.lang==='on'?'on':'off'];
@@ -2958,8 +2975,9 @@ body.oni-party #arcade-fx .oni-row-star {animation:treasure-fall 2.4s linear inf
     showPopupFromTop(endingDialog,endingTitle);
     try {playOniPartyMusic(true);}catch(error){console.warn('Ending music unavailable',error);}
   }
-  function returnToGameStart() {
-    if(!endingActive) return;
+  function returnToGameStart(force = false) {
+    if(!endingActive && force !== true) return;
+    trialGeneration++;
     trialStats = {total:0,correct:0,best:0};
     Object.values(instrumentProgress).forEach(progress=>{Object.values(progress.difficulty).forEach(state=>{state.hard=false;state.correct=0;state.wrong=0;});Object.keys(progress.fever).forEach(mode=>{progress.fever[mode]=0;progress.oni[mode]=false;});});
     endingActive=false;endingPending=false;clearTimeout(endingDelayTimer);stopArcadeAudio();clearArcade();clearTimeout(judgmentTimer);
@@ -3139,7 +3157,7 @@ body.oni-party #arcade-fx .oni-row-star {animation:treasure-fall 2.4s linear inf
     coral.alt=en?'Coral, the sea magician':'海の魔法使い・コーラル';
     introLanguages.setAttribute('aria-label',en?'Language':'言語');
     introJapanese.setAttribute('aria-pressed',String(!en));introEnglish.setAttribute('aria-pressed',String(en));
-    introText.textContent=en?"Let’s play together under the sea and improve your musical ear!\n\nPlaying is easy! Press ‘Start Game’ and listen to the two notes, then tap the fretboard in the order you heard them. If you make a mistake while answering, press ‘Listen Again’ to start your answer over.":"この海の中で、私と一緒にゲームして音感をもっと良くしちゃおう！\n\nゲームの操作は簡単だよ。「問題を出す」を押して2つの音を聴いたら、聴こえた順に指板をタップしてね。答える途中で間違えたら、「もう一度聴く」でやり直せるよ。";
+    introText.textContent=en?"Let’s play together under the sea and improve your musical ear!\n\nPlaying is easy! Press ‘Start Game’ and listen to the two notes, then tap the fretboard in the order you heard them. If you make a mistake while answering, press ‘Listen Again’ to start your answer over.\n\nTo move the fretboard left or right, swipe sideways on the scroll area below the fretboard.":"この海の中で、私と一緒にゲームして音感をもっと良くしちゃおう！\n\nゲームの操作は簡単だよ。「問題を出す」を押して2つの音を聴いたら、聴こえた順に指板をタップしてね。答える途中で間違えたら、「もう一度聴く」でやり直せるよ。\n\n指板を左右に動かす時は、指板の下のスクロールエリアを左右にスワイプだよ。";
     introPath.textContent=en?"Trial: 2-note chord questions only\nResults after 15 questions":"お試し版は2音のコード問題のみ\n全15問で結果発表";
     introFull.textContent=en?"After five correct answers in a row, the questions get a little harder. You can switch between guitar and bass, change the playback speed, and more, so try different settings and play as often as you like.\n\nBy the way, the full version also includes 3- and 4-note chords, scales, and melodies♪ If you’re interested, take a look at the link below.":"5問連続正解すると問題がちょっと難しくなるよ。ギターとベースの切り替えや問題の再生スピードの切り替えなどができるから、いろいろ試して何度でも遊んでね。\n\nちなみにフルバージョンでは3音・4音のコード、スケール、メロディの問題にも挑戦できるんだ♪もしよかったらリンクを見てみてね。";
     introVersion.textContent=en?'View the full version':'フルバージョンを見る';
@@ -3147,7 +3165,7 @@ body.oni-party #arcade-fx .oni-row-star {animation:treasure-fall 2.4s linear inf
     introLinkNote.hidden=true;
     introStart.textContent=en?'Let’s play!':'さっそく遊ぶ';
   }
-  introStart.addEventListener('click',()=>{trialIntro.close();playJudgmentSound(true,true);startButton.focus();});
+  introStart.addEventListener('click',()=>{returnToGameStart(true);trialIntro.close();playJudgmentSound(true,true);startButton.focus();});
   trialHelp.addEventListener('click',()=>{updateTrialText();showPopupFromTop(trialIntro,introTitle);});
   const originalUpdateStaticTexts=updateStaticTexts;
   updateStaticTexts=function(){originalUpdateStaticTexts();updateTrialText();};
