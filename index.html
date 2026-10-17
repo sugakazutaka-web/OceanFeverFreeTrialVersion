@@ -529,7 +529,10 @@ body.oni-party #arcade-fx .oni-row-star {animation:treasure-fall 2.4s linear inf
 }
 .ending-dialog .ending-ok{margin:12px auto;}
 
-.trial-dialog,.ending-dialog{scroll-behavior:auto;}
+.trial-dialog,.ending-dialog{
+  scroll-behavior:auto;overscroll-behavior:contain;
+  touch-action:pan-y;-webkit-overflow-scrolling:touch;
+}
 .trial-languages{display:flex;justify-content:center;gap:10px;margin:14px 0;}
 .trial-languages button[aria-pressed="true"]{background:#ffe38c;color:#352909;border-color:#fff2b9;}
 @media(max-width:650px) and (orientation:portrait){
@@ -3130,8 +3133,65 @@ body.oni-party #arcade-fx .oni-row-star {animation:treasure-fall 2.4s linear inf
   updateStaticTexts();
   syncArcadeUI();
 
+  // Fix the background in place while an introduction/result dialog is open.
+  const scrollLockedDialogs = new Set();
+  const scrollGuardedDialogs = new WeakSet();
+  let popupScrollState = null;
+  function lockPopupBackground(dialog) {
+    if (!popupScrollState) {
+      const body = document.body.style, root = document.documentElement.style;
+      const properties = [[body,'position'],[body,'top'],[body,'left'],[body,'width'],
+        [body,'overflow'],[root,'overflow'],[root,'overscroll-behavior']];
+      popupScrollState = { x:window.scrollX, y:window.scrollY,
+        styles:properties.map(([style,key]) => [style,key,style.getPropertyValue(key),style.getPropertyPriority(key)]) };
+      body.setProperty('position','fixed');
+      body.setProperty('top',`${-popupScrollState.y}px`);
+      body.setProperty('left',`${-popupScrollState.x}px`);
+      body.setProperty('width','100%');
+      body.setProperty('overflow','hidden');
+      root.setProperty('overflow','hidden');
+      root.setProperty('overscroll-behavior','none');
+    }
+    scrollLockedDialogs.add(dialog);
+    if (scrollGuardedDialogs.has(dialog)) return;
+    scrollGuardedDialogs.add(dialog);
+    const release = () => {
+      if (dialog.open) return;
+      scrollLockedDialogs.delete(dialog);
+      if (scrollLockedDialogs.size || !popupScrollState) return;
+      const saved = popupScrollState;
+      popupScrollState = null;
+      saved.styles.forEach(([style,key,value,priority]) => {
+        if (value) style.setProperty(key,value,priority); else style.removeProperty(key);
+      });
+      window.scrollTo({left:saved.x,top:saved.y,behavior:'instant'});
+    };
+    dialog.addEventListener('close',release);
+    new MutationObserver(release).observe(dialog,{attributes:true,attributeFilter:['open']});
+    // Older iOS versions can pass boundary swipes to the page beneath a dialog.
+    let lastY = null, inside = false;
+    dialog.addEventListener('touchstart',event => {
+      if (event.touches.length !== 1) { lastY=null; return; }
+      const touch=event.touches[0], rect=dialog.getBoundingClientRect();
+      lastY=touch.clientY;
+      inside=touch.clientX>=rect.left && touch.clientX<=rect.right &&
+        touch.clientY>=rect.top && touch.clientY<=rect.bottom;
+    },{passive:true});
+    dialog.addEventListener('touchmove',event => {
+      if (lastY===null || event.touches.length!==1) return;
+      const y=event.touches[0].clientY, delta=y-lastY; lastY=y;
+      const atTop=dialog.scrollTop<=0;
+      const atBottom=dialog.scrollTop+dialog.clientHeight>=dialog.scrollHeight-1;
+      if (!inside || (delta>0 && atTop) || (delta<0 && atBottom)) {
+        if(event.cancelable) event.preventDefault();
+      }
+    },{passive:false});
+    dialog.addEventListener('touchend',()=>{lastY=null;},{passive:true});
+    dialog.addEventListener('touchcancel',()=>{lastY=null;},{passive:true});
+  }
   function showPopupFromTop(dialog,heading){
     dialog.showModal();
+    lockPopupBackground(dialog);
     heading.focus({preventScroll:true});
     dialog.scrollTop=0;
     requestAnimationFrame(()=>{if(dialog.open) dialog.scrollTop=0;});
