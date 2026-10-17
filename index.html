@@ -589,7 +589,11 @@ body.oni-party #arcade-fx .oni-row-star {animation:treasure-fall 2.4s linear inf
 #ending-title:focus,#ending-title:focus-visible{outline:none;box-shadow:none;}
 .ending-congratulations-line:before{content:"　";}
 .ending-dialog .trial-stats{font-size:17px;line-height:1.7;}
-.trial-dialog p{font-size:16px;line-height:1.8;}
+/* Readable introduction text and controls in both languages. */
+.trial-dialog p{font-size:18px;line-height:1.8;}
+.trial-dialog button,.trial-dialog .intro-version{font-size:18px;line-height:1.5;min-height:48px;}
+.trial-dialog .trial-languages{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;}
+.trial-dialog .trial-languages button{padding:10px 18px;}
 .trial-dialog .trial-path{white-space:pre-line;}
 .intro-version,.trial-dialog .primary-btn{display:block;width:100%;margin:14px auto 0;}
 .intro-link-note{display:block;margin-top:6px;color:#b3d9e8;font-size:12px;}
