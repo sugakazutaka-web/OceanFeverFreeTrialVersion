@@ -431,6 +431,10 @@ body.fever-oni .instrument {background:linear-gradient(130deg,#285972,#304e72);}
   color:#123b8f;text-shadow:0 1px 1px #ffffff88;}
 #deck-counter,#deck-counter.hard-mode {justify-content:space-between;}
 #deck-counter .streak-stars {display:flex;}
+/* Portrait phones show one large star for each completed group of five. */
+@media (max-width:650px) and (orientation:portrait) {
+  #deck-counter .streak-stars > .completed-group-star {display:none;}
+}
 
 .oni-speech .cheer40-encouragement {display:block;white-space:nowrap;}
 
@@ -621,10 +625,10 @@ body.oni-party #arcade-fx .oni-row-star {animation:treasure-fall 2.4s linear inf
             
             <!-- English ON / OFF 設定 -->
             <div class="setting-item">
-              <label id="label-lang-setting">English</label>
+              <label id="label-lang-setting">Language</label>
               <div class="setting-options">
-                <button type="button" class="setting-opt-btn" id="lang-off-btn" data-lang="off">OFF (日本語)</button>
-                <button type="button" class="setting-opt-btn" id="lang-on-btn" data-lang="on">ON (English)</button>
+                <button type="button" class="setting-opt-btn" id="lang-off-btn" data-lang="off">日本語</button>
+                <button type="button" class="setting-opt-btn" id="lang-on-btn" data-lang="on">English</button>
               </div>
             </div>
 
@@ -761,7 +765,7 @@ body.oni-party #arcade-fx .oni-row-star {animation:treasure-fall 2.4s linear inf
     const i18n = {
       ja: {
         settings: "⚙️ 設定",
-        langLabel: "English",
+        langLabel: "言語",
         speedLabel: "問題の再生スピード",
         speedSlow: "遅い",
         speedFast: "速い",
@@ -799,7 +803,7 @@ body.oni-party #arcade-fx .oni-row-star {animation:treasure-fall 2.4s linear inf
       },
       en: {
         settings: "⚙️ Settings",
-        langLabel: "English",
+        langLabel: "Language",
         speedLabel: "Playback Speed",
         speedSlow: "Slow",
         speedFast: "Fast",
@@ -876,8 +880,8 @@ body.oni-party #arcade-fx .oni-row-star {animation:treasure-fall 2.4s linear inf
       document.documentElement.lang = appSettings.lang === 'on' ? 'en' : 'ja';
       document.querySelector('#modal-title-settings').textContent = t('settings');
       document.querySelector('#label-lang-setting').textContent = t('langLabel');
-      document.querySelector('#lang-off-btn').textContent = appSettings.lang === 'on' ? 'OFF (Japanese)' : 'OFF (日本語)';
-      document.querySelector('#lang-on-btn').textContent = appSettings.lang === 'on' ? 'ON (English)' : 'ON (English)';
+      document.querySelector('#lang-off-btn').textContent = '日本語';
+      document.querySelector('#lang-on-btn').textContent = 'English';
 
       document.querySelector('#label-speed-setting').textContent = t('speedLabel');
       document.querySelector('#speed-slow-btn').textContent = t('speedSlow');
@@ -2594,9 +2598,16 @@ body.oni-party #arcade-fx .oni-row-star {animation:treasure-fall 2.4s linear inf
     deckCounter.classList.toggle('hard-mode', state.hard);
     feverStage();
     const stars=document.createElement('span'); stars.className='streak-stars'; stars.setAttribute('aria-hidden','true');
-    for(let i=0;i<state.correct;i++) { const star=document.createElement('span'); star.textContent='★'; if((i+1)%5===0) star.classList.add('milestone-star'); if((i+1)%10===0) star.classList.add('silver-star'); stars.append(star); }
+    const completedStars = Math.floor(state.correct / 5) * 5;
+    for(let i=0;i<state.correct;i++) {
+      const star=document.createElement('span'); star.textContent='★';
+      if((i+1)%5===0) star.classList.add('milestone-star');
+      else if(i<completedStars) star.classList.add('completed-group-star');
+      if((i+1)%10===0) star.classList.add('silver-star');
+      stars.append(star);
+    }
     const label=document.createElement('span'); label.className='streak-label';
-    label.textContent=english ? `Answered ${trialStats.total}/15 · Streak ${state.correct}` : `回答 ${trialStats.total}/15問 · ${state.correct}連続正解`;
+    label.textContent=english ? `${trialStats.total}/15 · ⭐️ ${state.correct}` : `${trialStats.total}/15問 · ⭐️ ${state.correct}個`;
     deckCounter.replaceChildren(stars,label);
     if (!state.hard) oniCompleted[questionTypeSelect.value]=false;
     syncResidentMascot();
