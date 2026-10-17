@@ -828,12 +828,12 @@ body.oni-party #arcade-fx .oni-row-star {animation:treasure-fall 2.4s linear inf
         firstNote: "First Note of Chord Questions",
         optRoot: "Root Note",
         optRandom: "Non-root Note",
-        startBtn: "▶ Start Game",
+        startBtn: "▶ Play Question",
         skipBtn: "⏭ Skip",
         replayBtn: "🔊 Listen Again",
         viewResultBtn: "👁️ Show Answer",
         playChordBtn: "🎸 Play Chord",
-        initialMsg: "Click 'Start Game' to begin",
+        initialMsg: "Click 'Play Question' to begin",
         chordTitleLabel: "CHORD",
         scaleTitleLabel: "SCALE",
         chordPlaying: "Playing chord...",
@@ -1348,7 +1348,7 @@ body.oni-party #arcade-fx .oni-row-star {animation:treasure-fall 2.4s linear inf
       instrumentSelect.disabled = questionTypeSelect.disabled = noteCountSelect.disabled = firstNoteControls.disabled = false;
       statusBox.classList.remove('status-correct', 'status-wrong');
       statusMessage.textContent = appSettings.lang === 'on'
-        ? 'Audio could not play. Please press Start Game again.'
+        ? 'Audio could not play. Please press Play Question again.'
         : '音声を再生できませんでした。「問題を出す」を押して再試行してください。';
     }
 
@@ -2660,10 +2660,10 @@ body.oni-party #arcade-fx .oni-row-star {animation:treasure-fall 2.4s linear inf
     banner.className = 'arcade-banner' + (kind === 'cheer30' || kind === 'cheer40' ? ' cheer' : kind === 'unlock' ? ' fever-start' : kind === 'end' ? ' fever-end' : kind === 'oni' ? ' oni' : kind === 'hot' ? ' hot' : correct ? '' : ' miss');
     const title = document.createElement('strong');
     const subtitle = document.createElement('small');
-    title.textContent = correct ? (unlocked ? '★ FEVER ★' : '★ GREAT! ★') : 'TRY AGAIN';
+    title.textContent = correct ? (unlocked ? '★ FEVER ★' : '★ GREAT! ★') : 'NOT QUITE';
     subtitle.textContent = correct
       ? (unlocked ? (english ? '5 IN A ROW · HARD MODE UNLOCKED' : '5連続正解！ HARD MODE 突入！') : (english ? 'PERFECT CATCH! · ' : 'お見事！ 音をキャッチ！ · ') + difficulty().correct + (english ? ' STREAK' : ' 連続正解'))
-      : (english ? 'Listen again. Your next catch awaits.' : '惜しい！ もう一度、音を聴いてみよう');
+      : (english ? 'Listen again. Your next catch awaits.' : '惜しい！ 正解を聴いて、音を確認しよう');
     if(kind==='unlock') { title.textContent='FEVER START!'; subtitle.textContent=english?'5 IN A ROW · LET THE FEVER BEGIN!\nQuestions get a little harder!':'5連続正解！ フィーバータイム、スタート！\n問題が少し難しくなるよ。'; }
     if(kind==='cheer30' || kind==='cheer40') { title.textContent=kind==='cheer30'?'30 COMBO!':'40 COMBO!'; subtitle.textContent=english?'KEEP THE STREAK ALIVE!':'その連続正解、まだまだ続く！'; }
     if(kind==='hot') { title.textContent=english?'SUPER HOT!':'激アツ!!'; subtitle.textContent=english?'10 CONSECUTIVE HITS · THE OCEAN IS ON FIRE':'10連続正解！ 海が燃える、激アツ突入！'; }
@@ -3232,7 +3232,7 @@ body.oni-party #arcade-fx .oni-row-star {animation:treasure-fall 2.4s linear inf
     coral.alt=en?'Coral, the sea magician':'海の魔法使い・コーラル';
     introLanguages.setAttribute('aria-label',en?'Language':'言語');
     introJapanese.setAttribute('aria-pressed',String(!en));introEnglish.setAttribute('aria-pressed',String(en));
-    introText.textContent=en?"Let’s play together under the sea and improve your musical ear!\n\nPlaying is easy! Press ‘Start Game’ and listen to the two notes, then tap the fretboard in the order you heard them. If you make a mistake while answering, press ‘Listen Again’ to start your answer over.\n\nTo move the fretboard left or right, swipe sideways on the scroll area below the fretboard.":"この海の中で、私と一緒にゲームして音感をもっと良くしちゃおう！\n\nゲームの操作は簡単だよ。「問題を出す」を押して2つの音を聴いたら、聴こえた順に指板をタップしてね。答える途中で間違えたら、「もう一度聴く」でやり直せるよ。\n\n指板を左右に動かす時は、指板の下のスクロールエリアを左右にスワイプだよ。";
+    introText.textContent=en?"Let’s play together under the sea and improve your musical ear!\n\nPlaying is easy! Press ‘Play Question’ and listen to the two notes, then tap the fretboard in the order you heard them. If you make a mistake while answering, press ‘Listen Again’ to start your answer over.\n\nTo move the fretboard left or right, swipe sideways on the scroll area below the fretboard.":"この海の中で、私と一緒にゲームして音感をもっと良くしちゃおう！\n\nゲームの操作は簡単だよ。「問題を出す」を押して2つの音を聴いたら、聴こえた順に指板をタップしてね。答える途中で間違えたら、「もう一度聴く」でやり直せるよ。\n\n指板を左右に動かす時は、指板の下のスクロールエリアを左右にスワイプだよ。";
     introPath.textContent=en?"Trial: 2-note chord questions only\nResults after 15 questions":"お試し版は2音のコード問題のみ\n全15問で結果発表";
     introFull.textContent=en?"After five correct answers in a row, the questions get a little harder. You can switch between guitar and bass, change the playback speed, and more, so try different settings and play as often as you like.\n\nBy the way, the full version also includes 3- and 4-note chords, scales, and melodies♪ If you’re interested, take a look at the link below.":"5問連続正解すると問題がちょっと難しくなるよ。ギターとベースの切り替えや問題の再生スピードの切り替えなどができるから、いろいろ試して何度でも遊んでね。\n\nちなみにフルバージョンでは3音・4音のコード、スケール、メロディの問題にも挑戦できるんだ♪もしよかったらリンクを見てみてね。";
     introVersion.textContent=en?'View the full version':'フルバージョンを見る';
