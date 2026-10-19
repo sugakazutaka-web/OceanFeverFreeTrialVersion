@@ -613,6 +613,21 @@ body.oni-party #arcade-fx .oni-row-star {animation:treasure-fall 2.4s linear inf
 .full-version-link:hover{background:#1a5b7d;}
 .full-version-link:focus-visible{outline:3px solid #fff;outline-offset:3px;}
 @media(orientation:portrait){#ending-invitation .trial-retry-line{display:block;}}
+
+/* English trial ending: slightly larger titles and consistent text sizes. */
+html[lang="en"] .ending-dialog h2 {
+  font-size:clamp(26px,calc(4vw + 2px),44px);
+}
+html[lang="en"] .ending-dialog .ending-badge,
+html[lang="en"] .ending-dialog .oni-speech,
+html[lang="en"] .ending-dialog .trial-stats,
+html[lang="en"] .ending-dialog .full-version-link,
+html[lang="en"] .ending-dialog .ending-ok {
+  font-size:18px;
+}
+@media(max-height:650px) and (orientation:landscape) {
+  html[lang="en"] .ending-dialog h2 { font-size:30px; }
+}
 </style>
 </head>
 <body>
