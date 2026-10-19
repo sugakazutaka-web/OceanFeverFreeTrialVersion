@@ -3042,8 +3042,10 @@ html[lang="en"] .ending-dialog .ending-ok {
     invitation.textContent=appSettings.lang==='on'
       ? (trialStats.best>=15 ? 'Let’s take on the other modes in the full version!' : 'Let’s try again and aim for 15 correct in a row!')
       : (trialStats.best>=15 ? 'フルバージョンで他のモードに挑戦だー！' : '次は15問連続正解をめざして\n再チャレンジしよう♪');
-    if(appSettings.lang==='on' && trialStats.best<15) {
-      invitation.innerHTML='Let’s try again and aim<br class="desktop-ending-break"> for 15 correct in a row!';
+    if(appSettings.lang==='on') {
+      invitation.innerHTML=trialStats.best>=15
+        ? 'Let’s take on the other modes<br class="desktop-ending-break"> in the full version!'
+        : 'Let’s try again and aim<br class="desktop-ending-break"> for 15 correct in a row!';
     }
     endingFull.textContent=appSettings.lang==='on'?'The full version also includes 3/4-note chords, scales, and melodies.':'フルバージョンでは、”3音/4音のコード”、”スケール”、”メロディ”にも挑戦できるよ！';
     endingOK.textContent=appSettings.lang==='on'?'Try another 15 questions':'もう一度15問にチャレンジ';
@@ -3070,7 +3072,11 @@ html[lang="en"] .ending-dialog .ending-ok {
     updateUIControls();updateStartButton();setStatus(null,t('initialMsg'));setBoardScroll(0);syncArcadeUI();
     document.body.classList.remove('game-cleared');endingDialog.close();startButton.focus();
   }
-  endingOK.addEventListener('click',returnToGameStart);
+  endingOK.addEventListener('click',()=>{
+    if(!endingActive) return;
+    returnToGameStart();
+    playJudgmentSound(true,true);
+  });
 
 
   // A modal keeps the result paused until the player answers and the reply finishes.
