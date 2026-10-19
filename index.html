@@ -647,6 +647,10 @@ html[lang="en"] .ending-dialog .ending-ok {
 @media(prefers-reduced-motion:reduce) {
   #start,#replay,#play-chord-arpeggio {transition:none;}
 }
+/* Keep a small separation between the fretboard and progress on portrait phones. */
+@media(max-width:650px) and (orientation:portrait) {
+  main > .hint {margin-top:-8px;}
+}
 </style>
 </head>
 <body>
@@ -3012,7 +3016,7 @@ html[lang="en"] .ending-dialog .ending-ok {
       ? (appSettings.lang==='on'?'Congratulations!':'ゲームクリア<span class="ending-congratulations-line">おめでとう！</span>')
       : (appSettings.lang==='on'?'Thanks for playing 15 questions!':'15問おつかれさま！');
     invitation.textContent=appSettings.lang==='on'
-      ? (trialStats.best>=15 ? 'Let’s take on the other modes in the full version!' : 'Let’s try again and aim for 15 correct in a row!\nListen as often as you like and build your streak♪')
+      ? (trialStats.best>=15 ? 'Let’s take on the other modes in the full version!' : 'Let’s try again and aim for 15 correct in a row!')
       : (trialStats.best>=15 ? 'フルバージョンで他のモードに挑戦だー！' : '次は15問連続正解をめざして\n再チャレンジしよう♪');
     endingFull.textContent=appSettings.lang==='on'?'The full version also includes 3/4-note chords, scales, and melodies.':'フルバージョンでは、”3音/4音のコード”、”スケール”、”メロディ”にも挑戦できるよ！';
     endingOK.textContent=appSettings.lang==='on'?'Try another 15 questions':'もう一度15問にチャレンジ';
