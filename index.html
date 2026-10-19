@@ -664,6 +664,10 @@ html[lang="en"] .ending-dialog .ending-ok {
 @media(max-width:650px) and (orientation:portrait) and (display-mode:standalone) {
   main {padding-bottom:max(6px,env(safe-area-inset-bottom));}
 }
+/* Remove the remaining footer padding only in iPhone Safari browser mode. */
+@media(max-width:650px) and (orientation:portrait) and (display-mode:browser) {
+  html.iphone-safari main {padding-bottom:0;}
+}
 </style>
 </head>
 <body>
@@ -781,6 +785,11 @@ html[lang="en"] .ending-dialog .ending-ok {
   </div>
 
   <script>
+    const isIPhoneSafari = /iPhone/.test(navigator.userAgent) &&
+      /Version\/.*Safari\//.test(navigator.userAgent) &&
+      !/CriOS|FxiOS|EdgiOS|OPiOS/.test(navigator.userAgent) &&
+      navigator.standalone !== true;
+    document.documentElement.classList.toggle('iphone-safari', isIPhoneSafari);
 
     // Safari gesture events complement touch-action without suppressing single taps.
     const preventNativeGesture = event => { if (event.cancelable) event.preventDefault(); };
@@ -842,7 +851,6 @@ html[lang="en"] .ending-dialog .ending-ok {
         optRoot: "ルート音",
         optRandom: "ルート音以外",
         startBtn: "▶ 問題を出す",
-        skipBtn: "⏭ スキップ",
         replayBtn: "🔊 もう一度聴く",
         viewResultBtn: "👁️ 正解を確認する",
         playChordBtn: "🎸 コードを鳴らす",
@@ -880,7 +888,6 @@ html[lang="en"] .ending-dialog .ending-ok {
         optRoot: "Root Note",
         optRandom: "Non-root Note",
         startBtn: "▶ Play Question",
-        skipBtn: "⏭ Skip",
         replayBtn: "🔊 Listen Again",
         viewResultBtn: "👁️ Show Answer",
         playChordBtn: "🎸 Play Chord",
@@ -1151,7 +1158,8 @@ html[lang="en"] .ending-dialog .ending-ok {
     let scaleDeck = [];
 
     function updateStartButton() {
-      startButton.textContent = game.phase === 'guess' ? t('skipBtn') : t('startBtn');
+      startButton.textContent = t('startBtn');
+      if (game.phase === 'playing' || game.phase === 'guess') startButton.disabled = true;
     }
 
     function questionTitle() {
@@ -1688,7 +1696,9 @@ html[lang="en"] .ending-dialog .ending-ok {
       if(generation!==trialGeneration) return;
 
       playChordBtn.disabled = false;
-      startButton.disabled = replayButton.disabled = false;
+      replayButton.disabled = false;
+      startButton.disabled = false;
+      updateStartButton();
       instrumentSelect.disabled = questionTypeSelect.disabled = noteCountSelect.disabled = firstNoteControls.disabled = false;
     }
 
@@ -2385,6 +2395,7 @@ html[lang="en"] .ending-dialog .ending-ok {
     }
 
     async function startGame() {
+      if (!['idle', 'result'].includes(game.phase) || startButton.disabled) return;
       questionTypeSelect.value = "chord"; noteCountSelect.value = "2";
       clearTimeout(judgmentTimer);
       endGesture();
@@ -2714,7 +2725,7 @@ html[lang="en"] .ending-dialog .ending-ok {
     title.textContent = correct ? (unlocked ? '★ FEVER ★' : '★ GREAT! ★') : 'NOT QUITE';
     subtitle.textContent = correct
       ? (unlocked ? (english ? '5 IN A ROW · HARD MODE UNLOCKED' : '5連続正解！ HARD MODE 突入！') : (english ? 'PERFECT CATCH! · ' : 'お見事！ 音をキャッチ！ · ') + difficulty().correct + (english ? ' STREAK' : ' 連続正解'))
-      : (english ? 'Listen again. Your next catch awaits.' : '惜しい！ 正解を聴いて、音を確認しよう');
+      : (english ? 'So close! Listen to the correct answer and check the notes.' : '惜しい！ 正解を聴いて、音を確認しよう');
     if(kind==='unlock') { title.textContent='FEVER START!'; subtitle.textContent=english?'5 IN A ROW · LET THE FEVER BEGIN!\nQuestions get a little harder!':'5連続正解！ フィーバータイム、スタート！\n問題が少し難しくなるよ。'; }
     if(kind==='cheer30' || kind==='cheer40') { title.textContent=kind==='cheer30'?'30 COMBO!':'40 COMBO!'; subtitle.textContent=english?'KEEP THE STREAK ALIVE!':'その連続正解、まだまだ続く！'; }
     if(kind==='hot') { title.textContent=english?'SUPER HOT!':'激アツ!!'; subtitle.textContent=english?'10 CONSECUTIVE HITS · THE OCEAN IS ON FIRE':'10連続正解！ 海が燃える、激アツ突入！'; }
