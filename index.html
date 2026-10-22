@@ -678,6 +678,13 @@ html[lang="en"] .ending-dialog .ending-ok {
 .trial-stage-face img{position:absolute;max-width:none;width:165%;height:auto;left:-27%;top:0;}
 .trial-stage-dialog p{font-size:clamp(16px,4.5vw,22px);line-height:1.65;margin:12px 0 0;}
 @media(orientation:landscape) and (max-height:500px){.trial-stage-face{width:90px;height:90px;}.trial-stage-dialog{padding:12px;}}
+
+.trial-dialog .trial-mode-entry{white-space:pre-line;}
+html[lang="en"] .trial-phrase+.trial-phrase{margin-left:.25em;}
+@media(max-width:650px) and (orientation:portrait){
+  .trial-dialog .trial-path{font-size:clamp(12px,3.8vw,16px);padding-inline:8px;}
+  html[lang="en"] .trial-bar>span{white-space:pre-line;min-width:0;}
+}
 </style>
 </head>
 <body>
@@ -2009,8 +2016,8 @@ html[lang="en"] .ending-dialog .ending-ok {
       let defs,triad=false,normalHard=false;
       if(trialMode==='c'){
         triad=trialStats.total<5;
-        defs=triad?basicChordDefinitions.filter(d=>d.intervals.length===3)
-          :[...basicChordDefinitions.filter(d=>d.intervals.length===4),...tensionChordDefinitions];
+        if(triad)return {defs:[basicChordDefinitions[[0,1,5,6,8][trialStats.total]]],triad:true,normalHard:false};
+        defs=basicChordDefinitions.filter(d=>d.intervals.length===4);
       }else if(trialMode==='all'){
         defs=trialSchedule[trialStats.total]==='tension'?tensionChordDefinitions:basicChordDefinitions;
       }else if(!difficulty().hard){
@@ -3140,8 +3147,8 @@ html[lang="en"] .ending-dialog .ending-ok {
   endingOK.addEventListener('click',()=>{
     if(!endingActive) return;
     returnToGameStart();
-    playJudgmentSound(true,true);
     if(trialMode==='c')showTrialStageNotice(false);
+    else playJudgmentSound(true,true);
   });
 
 
@@ -3340,9 +3347,10 @@ html[lang="en"] .ending-dialog .ending-ok {
   let trialStageTimer;
   function showTrialStageNotice(advanced){
     clearTimeout(trialStageTimer);clearArcade();
+    if(!advanced)playJudgmentSound(true,true);
     setTrialSpeech(trialStageSpeech,appSettings.lang==='on'
-      ? (advanced?['Now try seventh chords ','and chords with ','added tensions♪']:['Let’s start with ','five triad questions♪'])
-      : (advanced?['ここからは4和音と','テンションを含んだ','問題だよ♪']:['最初は3和音から','5問出題するよ♪']));
+      ? (advanced?['Now try four-note chords♪']:['Let’s start with 5',' triad questions♪'])
+      : (advanced?['ここからは4和音の','問題だよ♪']:['最初は3和音から','5問出題するよ♪']));
     if(!trialStageDialog.open)trialStageDialog.showModal();
     trialStageTimer=setTimeout(()=>{trialStageDialog.close();startButton.focus();},3000);
   }
@@ -3375,7 +3383,7 @@ html[lang="en"] .ending-dialog .ending-ok {
   trialIntro.append(coral,introTitle,introLanguages,introText,introPath,introFull,introVersion,introLinkNote,introStart,introOther,introC,introAll);document.body.append(trialIntro);
   function updateTrialText(){
     const en=appSettings.lang==='on';
-    trialLabel.textContent=en?`TRIAL · ${trialModeName()} · ${trialQuestionCount()} questions`:`お試し版 · ${trialModeName()} · 全${trialQuestionCount()}問`;
+    trialLabel.textContent=en?`TRIAL ${trialModeName()}\n${trialQuestionCount()} questions`:`お試し版 ${trialModeName()} 全${trialQuestionCount()}問`;
     trialHelp.textContent=en?'Coral’s guide':'コーラルのガイド';
     introTitle.innerHTML=en?'Hello!<br>I’m Coral,<br>the sea magician♪':'こんにちは！<br>私は海の魔法使い<br>コーラルだよ♪';
     coral.alt=en?'Coral, the sea magician':'海の魔法使い・コーラル';
@@ -3389,12 +3397,13 @@ html[lang="en"] .ending-dialog .ending-ok {
     introLinkNote.hidden=true;
     introStart.textContent=en?'Start game':'ゲームを始める';
     introOther.textContent=en?'You can also try these modes in the trial version.':'お試し版では以下のモードでも遊べます。';
-    introC.textContent=en?'C-root experience · 15 questions':'Cコード限定体験モード（全15問）';
-    introAll.textContent=en?'All-chord experience · 20 questions':'全コード体験モード（全20問）';
+    introC.textContent=en?'C-root experience\n(15 questions)':'Cコード限定体験モード\n（全15問）';
+    introAll.textContent=en?'All-chord experience\n(20 questions)':'全コード体験モード\n（全20問）';
   }
   function startTrialMode(mode){
-    trialMode=mode;returnToGameStart(true);trialIntro.close();updateTrialText();playJudgmentSound(true,true);startButton.focus();
-    if(mode==='c')requestAnimationFrame(()=>showTrialStageNotice(false));
+    trialMode=mode;returnToGameStart(true);trialIntro.close();updateTrialText();startButton.focus();
+    if(mode==='c'){if(appSettings.sound==='exists')ensureAudio();requestAnimationFrame(()=>showTrialStageNotice(false));}
+    else playJudgmentSound(true,true);
   }
   introStart.addEventListener('click',()=>startTrialMode('normal'));
   introC.addEventListener('click',()=>startTrialMode('c'));
