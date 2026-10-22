@@ -500,7 +500,8 @@ body.oni-party #arcade-fx .oni-row-star {animation:treasure-fall 2.4s linear inf
 
 /* Trial introduction and full-version information. */
 .trial-bar{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;border:1px solid #55b8dc77;border-radius:12px;background:#082746;color:#fff1ad;font-size:13px;order:0;}
-.trial-bar button{font-size:12px;min-height:36px;}
+.trial-bar button{font-size:12px;min-height:36px;white-space:nowrap;flex:0 0 auto;}
+.trial-bar>span{flex:1 1 auto;min-width:0;overflow-wrap:anywhere;}
 .trial-dialog{width:min(540px,calc(100vw - 28px));max-height:90dvh;overflow:auto;background:linear-gradient(145deg,#0b4264,#061632);color:#e2f7ff;border:2px solid #ffe38c;border-radius:22px;padding:24px;text-align:center;}
 .trial-dialog::backdrop{background:#02091fd9;}
 .trial-dialog img{width:140px;height:140px;object-fit:contain;}
@@ -3086,11 +3087,12 @@ html[lang="en"] .trial-phrase+.trial-phrase{margin-left:.25em;}
   const endingCharacter=document.createElement('img');endingCharacter.className='ending-character';endingCharacter.src=mascotImage;endingCharacter.alt='再チャレンジを応援する海の魔法使い・コーラル';
   const invitation=document.createElement('div');invitation.id='ending-invitation';invitation.className='oni-speech';invitation.textContent='他のモードにも挑戦だ〜！';
   const endingOK=document.createElement('button');endingOK.type='button';endingOK.className='ending-ok primary-btn';endingOK.textContent='OK';
+  const endingHome=document.createElement('button');endingHome.type='button';endingHome.className='ending-ok';
   const endingStats=document.createElement('p'); endingStats.className='trial-stats';
   const endingFull=document.createElement('p'); endingFull.className='trial-stats';
   const purchaseURLs={off:'https://electricbass.official.ec/items/158279041',on:'https://payhip.com/b/2OfjE'};
   const trialPurchase=document.createElement('a');trialPurchase.className='full-version-link';trialPurchase.target='_blank';trialPurchase.rel='noopener noreferrer';
-  endingDialog.append(endingBadge,endingTitle,endingCharacter,invitation,endingStats,endingFull,trialPurchase,endingOK);
+  endingDialog.append(endingBadge,endingTitle,endingCharacter,invitation,endingStats,endingFull,trialPurchase,endingOK,endingHome);
   document.body.append(endingDialog);
   endingDialog.addEventListener('cancel',event=>event.preventDefault());
   function scheduleGameEnding() {
@@ -3129,6 +3131,7 @@ html[lang="en"] .trial-phrase+.trial-phrase{margin-left:.25em;}
       : ['ゲームに慣れたら、','通常モードで','連続正解を目指してね♪']);
     endingFull.textContent=appSettings.lang==='on'?'The full version also includes 3/4-note chords, scales, and melodies.':'フルバージョンでは、”3音/4音のコード”、”スケール”、”メロディ”にも挑戦できるよ！';
     endingOK.textContent=appSettings.lang==='on'?`Try another ${count} questions`:`もう一度${count}問にチャレンジ`;
+    endingHome.textContent=appSettings.lang==='on'?'Back to the start screen':'最初の画面に戻る';
     trialPurchase.textContent=appSettings.lang==='on'?'View the full version':'フルバージョンを見る';
     trialPurchase.href=purchaseURLs[appSettings.lang==='on'?'on':'off'];
     endingStats.textContent=appSettings.lang==='on'?`Correct: ${trialStats.correct} / ${count}`:`${count}問中 ${trialStats.correct}問正解`;
@@ -3154,6 +3157,12 @@ html[lang="en"] .trial-phrase+.trial-phrase{margin-left:.25em;}
     updateUIControls();updateStartButton();setStatus(null,t('initialMsg'));setBoardScroll(0);syncArcadeUI();
     document.body.classList.remove('game-cleared');endingDialog.close();focusTrialStart();
   }
+  endingHome.addEventListener('click',()=>{
+    if(!endingActive)return;
+    returnToGameStart();
+    updateTrialText();
+    showPopupFromTop(trialIntro,introTitle);
+  });
   endingOK.addEventListener('click',()=>{
     if(!endingActive) return;
     returnToGameStart();
