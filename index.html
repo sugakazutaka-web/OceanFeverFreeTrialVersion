@@ -1299,6 +1299,13 @@ html[lang="en"] .trial-phrase+.trial-phrase{margin-left:.25em;}
     function difficulty() { return difficultyStates[questionTypeSelect.value]; }
     let trialGeneration = 0;
     let trialMode = 'normal';
+    let trialKeyboardNavigation = false;
+    document.addEventListener('keydown',event=>{if(event.key==='Tab')trialKeyboardNavigation=true;},true);
+    document.addEventListener('pointerdown',()=>{trialKeyboardNavigation=false;},true);
+    function focusTrialStart(){
+      startButton.focus({preventScroll:true});
+      if(!trialKeyboardNavigation)startButton.blur();
+    }
     let trialSchedule = [];
     const roundChordTypes = new Set();
     function trialQuestionCount(){return trialMode==='all'?20:15;}
@@ -1852,6 +1859,9 @@ html[lang="en"] .trial-phrase+.trial-phrase{margin-left:.25em;}
         function search(stringIndex, form, mask) {
           if (stringIndex === tuning.length) {
             if (form.length < Math.max(4, pitchClasses.length) || mask !== (1 << pitchClasses.length) - 1) return;
+            // Reject actual adjacent semitones, not pitch classes across octaves.
+            // For example, D#4 + E4 clashes; D#3 + E4 remains allowed.
+            if (form.some((note, i) => form.slice(i + 1).some(other => Math.abs(note.midi - other.midi) === 1))) return;
             const lowest = Math.min(...form.map(note => note.midi));
             if (lowest % 12 !== rootPitchIndex) return;
             // Keep extensions above the bass root instead of collapsing a ninth to a second.
@@ -3142,7 +3152,7 @@ html[lang="en"] .trial-phrase+.trial-phrase{margin-left:.25em;}
     replayButton.disabled=true;playChordBtn.disabled=true;replayButton.textContent=t('replayBtn');
     settingsPopup.classList.remove('active');
     updateUIControls();updateStartButton();setStatus(null,t('initialMsg'));setBoardScroll(0);syncArcadeUI();
-    document.body.classList.remove('game-cleared');endingDialog.close();startButton.focus();
+    document.body.classList.remove('game-cleared');endingDialog.close();focusTrialStart();
   }
   endingOK.addEventListener('click',()=>{
     if(!endingActive) return;
@@ -3208,7 +3218,7 @@ html[lang="en"] .trial-phrase+.trial-phrase{margin-left:.25em;}
       challengeActive=false;
       challengeSavedControls.forEach(([control,disabled])=>{control.disabled=disabled;});
       challengeSavedControls=[];
-      challengeDialog.close();syncArcadeUI();startButton.focus();
+      challengeDialog.close();syncArcadeUI();focusTrialStart();
     },3000);
   }
   challengeYes.addEventListener('click',()=>answerRootChallenge(true));
@@ -3352,7 +3362,7 @@ html[lang="en"] .trial-phrase+.trial-phrase{margin-left:.25em;}
       ? (advanced?['Now try four-note chords♪']:['Let’s start with 5',' triad questions♪'])
       : (advanced?['ここからは4和音の','問題だよ♪']:['最初は3和音から','5問出題するよ♪']));
     if(!trialStageDialog.open)trialStageDialog.showModal();
-    trialStageTimer=setTimeout(()=>{trialStageDialog.close();startButton.focus();},3000);
+    trialStageTimer=setTimeout(()=>{trialStageDialog.close();focusTrialStart();},3000);
   }
   const trialBar=document.createElement('div');trialBar.className='trial-bar';
   const trialLabel=document.createElement('span');
@@ -3384,7 +3394,7 @@ html[lang="en"] .trial-phrase+.trial-phrase{margin-left:.25em;}
   function updateTrialText(){
     const en=appSettings.lang==='on';
     trialLabel.textContent=en?`TRIAL ${trialModeName()}\n${trialQuestionCount()} questions`:`お試し版 ${trialModeName()} 全${trialQuestionCount()}問`;
-    trialHelp.textContent=en?'Coral’s guide':'コーラルのガイド';
+    trialHelp.textContent=en?'Reset':'リセット';
     introTitle.innerHTML=en?'Hello!<br>I’m Coral,<br>the sea magician♪':'こんにちは！<br>私は海の魔法使い<br>コーラルだよ♪';
     coral.alt=en?'Coral, the sea magician':'海の魔法使い・コーラル';
     introLanguages.setAttribute('aria-label',en?'Language':'言語');
@@ -3401,7 +3411,7 @@ html[lang="en"] .trial-phrase+.trial-phrase{margin-left:.25em;}
     introAll.textContent=en?'All-chord experience\n(20 questions)':'全コード体験モード\n（全20問）';
   }
   function startTrialMode(mode){
-    trialMode=mode;returnToGameStart(true);trialIntro.close();updateTrialText();startButton.focus();
+    trialMode=mode;returnToGameStart(true);trialIntro.close();updateTrialText();focusTrialStart();
     if(mode==='c'){if(appSettings.sound==='exists')ensureAudio();requestAnimationFrame(()=>showTrialStageNotice(false));}
     else playJudgmentSound(true,true);
   }
