@@ -668,6 +668,16 @@ html[lang="en"] .ending-dialog .ending-ok {
 @media(max-width:650px) and (orientation:portrait) and (display-mode:browser) {
   html.iphone-safari main {padding-bottom:0;}
 }
+
+.trial-mode-entry{display:block;width:100%;margin:12px 0;padding:12px;white-space:normal;}
+.trial-phrase{display:inline-block;white-space:nowrap;}
+.trial-experience-speech{font-size:clamp(15px,4vw,21px)!important;line-height:1.7;}
+.trial-stage-dialog{width:min(430px,calc(100vw - 32px));box-sizing:border-box;padding:20px;border:2px solid #ffe38c;border-radius:22px;background:#09304b;color:#fff1ad;text-align:center;}
+.trial-stage-dialog::backdrop{background:#02091fa6;}
+.trial-stage-face{position:relative;width:132px;height:132px;overflow:hidden;margin:0 auto;}
+.trial-stage-face img{position:absolute;max-width:none;width:165%;height:auto;left:-27%;top:0;}
+.trial-stage-dialog p{font-size:clamp(16px,4.5vw,22px);line-height:1.65;margin:12px 0 0;}
+@media(orientation:landscape) and (max-height:500px){.trial-stage-face{width:90px;height:90px;}.trial-stage-dialog{padding:12px;}}
 </style>
 </head>
 <body>
@@ -1281,22 +1291,29 @@ html[lang="en"] .ending-dialog .ending-ok {
     let difficultyStates = roundProgress.difficulty;
     function difficulty() { return difficultyStates[questionTypeSelect.value]; }
     let trialGeneration = 0;
+    let trialMode = 'normal';
+    let trialSchedule = [];
+    const roundChordTypes = new Set();
+    function trialQuestionCount(){return trialMode==='all'?20:15;}
+    function trialModeName(){return appSettings.lang==='on'
+      ? ({normal:'Normal mode',c:'C-root experience',all:'All-chord experience'})[trialMode]
+      : ({normal:'通常モード',c:'Cコード限定体験モード',all:'全コード体験モード'})[trialMode];}
     let trialStats = { total:0, correct:0, best:0 };
     function recordResult(correct) {
       const state = difficulty();
       if (correct) {
         state.correct++;
         state.wrong = 0;
-        if (state.correct >= 5) state.hard = true;
+        if (trialMode==='normal' && state.correct >= 5) state.hard = true;
       } else {
         state.correct = 0;
         state.wrong++;
-        if (state.hard && state.wrong >= 1) {
+        if (trialMode==='normal' && state.hard && state.wrong >= 1) {
           state.hard = false;
           state.wrong = 0;
         }
       }
-      trialStats.total++; if(correct) trialStats.correct++; trialStats.best=Math.max(trialStats.best,state.correct);
+      trialStats.total++; if(trialMode!=='normal')state.hard=false; if(correct) trialStats.correct++; trialStats.best=Math.max(trialStats.best,state.correct);
       updateDeckCounterDisplay();
     }
 
@@ -1321,7 +1338,7 @@ html[lang="en"] .ending-dialog .ending-ok {
       playChordBtn.disabled = game.phase === 'idle' || mode === 'scale';
       if (mode === 'chord') {
         noteCountGroup.style.display = 'flex';
-        firstNoteGroup.style.display = 'block';
+        firstNoteGroup.style.display = trialMode==='c'?'none':'block';
         targetLabel.textContent = t('chordTitleLabel');
         targetTitle.textContent = '---';
       } else {
@@ -1872,6 +1889,8 @@ html[lang="en"] .ending-dialog .ending-ok {
       const extensions = def.intervals.filter(interval => interval >= 12);
       const sevenths = def.intervals.filter(interval => interval === 10 || interval === 11);
       const intervals = [...extensions, ...sevenths];
+      if(def.name==='' || def.name==='m')intervals.push(def.intervals[1]);
+      if(def.name==='aug')intervals.push(8);
       if (sevenths.length && !extensions.length) intervals.push(...def.intervals.filter(i => i === 3 || i === 4));
       if (def.intervals.includes(9)) intervals.push(9);
       if (def.name.includes('♭5') || def.name.includes('dim')) intervals.push(6);
@@ -1906,7 +1925,7 @@ html[lang="en"] .ending-dialog .ending-ok {
           ? feature.extensionClasses : feature.seventhClasses;
         return classes.includes(feature.selected) && !classes.some(pc => excluded.includes(pc));
       }
-      return !feature || feature.stats.hits >= Math.ceil((feature.stats.total + 1) * .6)
+      return !feature || feature.stats.hits >= Math.ceil((feature.stats.total + 1) * .8)
         || sequence.some(note => (note.midi - root + 120) % 12 === feature.selected);
     }
     function recordChordFeature(sequence, root, feature) {
@@ -1916,17 +1935,13 @@ html[lang="en"] .ending-dialog .ending-ok {
       if (sequence.some(note => (note.midi - root + 120) % 12 === feature.selected)) feature.stats.bag.pop();
     }
 
-    function makeGuitarChordQuestion(count, isRootFirst) {
-      if (!difficulty().hard) chordTypeBag = [];
-      else if (!chordTypeBag.length) chordTypeBag = shuffleMelodies(['basic','basic','basic','basic','basic','tension','tension','tension','tension','tension']);
-      const useTension = difficulty().hard && chordTypeBag.at(-1) === 'tension';
-      const defs = difficulty().hard ? (useTension ? tensionChordDefinitions : basicChordDefinitions)
-        : basicChordDefinitions.filter(def => def.name === '' || def.name === 'm');
-      const choices = shuffleMelodies(defs.flatMap(def => Array.from({ length:12 }, (_, rootPitchIndex) => ({ def, rootPitchIndex }))));
+    function makeGuitarChordQuestion(count, isRootFirst, plan) {
+      const defs = plan.defs;
+      const choices = shuffleMelodies(defs.flatMap(def => trialMode==='c'?[{def,rootPitchIndex:0}]:Array.from({ length:12 }, (_, rootPitchIndex) => ({ def, rootPitchIndex }))));
       for (const { def, rootPitchIndex } of choices) {
         const titleName = pitchNames[rootPitchIndex] + def.name;
-        const feature = chordFeatureState(def, count);
-        if (titleName === lastChordName) continue;
+        const feature = plan.triad?null:chordFeatureState(def, count);
+        if (trialMode!=='c' && titleName === lastChordName) continue;
         const forms = guitarChordForms(rootPitchIndex, def.intervals);
         // Start with comfortable lower-position forms, retaining higher forms as a fallback.
         const orderedForms = [...shuffleMelodies(forms.slice(0, 24)), ...shuffleMelodies(forms.slice(24))];
@@ -1935,8 +1950,8 @@ html[lang="en"] .ending-dialog .ending-ok {
           let sequence = null;
           function extend(selected) {
             if (selected.length === count) {
-              if (chordShape(selected) === lastChordShape) return false;
-              if (!acceptsChordFeature(selected, rootPitchIndex, feature)) return false;
+              if (repeatsTrialShape(selected,def,plan)) return false;
+              if (!acceptsChordFeature(selected, rootPitchIndex, feature) || !acceptsTrialPattern(selected,def,plan)) return false;
               sequence = selected.slice(); return true;
             }
             for (const note of shuffleMelodies(notes)) {
@@ -1954,11 +1969,12 @@ html[lang="en"] .ending-dialog .ending-ok {
           if (!extend([])) continue;
           recordChordFeature(sequence, rootPitchIndex, feature);
           lastChordName = titleName; lastChordShape = chordShape(sequence);
-          if (difficulty().hard) chordTypeBag.pop();
+          recordTrialChord(def,sequence,plan);
           return { sequence, titleName, displayKey:titleName, rootPitchIndex,
             chordMidiNotes:form.map(note => note.midi), guitarChordForm:form };
         }
       }
+      if(!plan.allowRepeatedShape)return makeGuitarChordQuestion(count,isRootFirst,{...plan,allowRepeatedShape:true});
       throw new Error('No playable guitar chord form satisfying the question rules');
     }
 
@@ -1980,35 +1996,73 @@ html[lang="en"] .ending-dialog .ending-ok {
       return notes.at(-1) > highestFretboardMidi ? notes.map(midi => midi - 12) : notes;
     }
 
-    let chordTypeBag = [];
+    // These histories live for the page lifetime, across modes, rounds and instruments.
+    const usedChordTypes = new Set(), usedCPatterns = new Set();
+    let normalCategoryBag = [], lastChordType = null, sameChordTypeCount = 0;
+    function unseenChordTypes(defs){
+      let eligible=trialMode==='normal'?defs:defs.filter(def=>!roundChordTypes.has(def.name));
+      if(!eligible.length)eligible=defs;
+      if(eligible.every(def=>usedChordTypes.has(def.name)))eligible.forEach(def=>usedChordTypes.delete(def.name));
+      return eligible.filter(def=>!usedChordTypes.has(def.name));
+    }
+    function trialChordPlan(){
+      let defs,triad=false,normalHard=false;
+      if(trialMode==='c'){
+        triad=trialStats.total<5;
+        defs=triad?basicChordDefinitions.filter(d=>d.intervals.length===3)
+          :[...basicChordDefinitions.filter(d=>d.intervals.length===4),...tensionChordDefinitions];
+      }else if(trialMode==='all'){
+        defs=trialSchedule[trialStats.total]==='tension'?tensionChordDefinitions:basicChordDefinitions;
+      }else if(!difficulty().hard){
+        defs=basicChordDefinitions.slice(0,2).filter(d=>sameChordTypeCount<2||d.name!==lastChordType);
+        return {defs,triad:false,normalHard:false};
+      }else{
+        normalHard=true;
+        if(!normalCategoryBag.length)normalCategoryBag=shuffleMelodies([...Array(5).fill('basic'),...Array(5).fill('tension')]);
+        defs=normalCategoryBag.at(-1)==='tension'?tensionChordDefinitions:basicChordDefinitions;
+      }
+      return {defs:unseenChordTypes(defs),triad,normalHard};
+    }
+    function availableCDeltas(def){
+      const deltas=def.intervals.slice(1).flatMap(n=>[n,n-12]);
+      if(deltas.every(n=>usedCPatterns.has(def.name+':'+n)))deltas.forEach(n=>usedCPatterns.delete(def.name+':'+n));
+      return deltas.filter(n=>!usedCPatterns.has(def.name+':'+n));
+    }
+    function acceptsTrialPattern(seq,def,plan){
+      return !plan.triad||availableCDeltas(def).includes(seq[1].midi-seq[0].midi);
+    }
+    function repeatsTrialShape(sequence,def,plan){
+      if(plan.allowRepeatedShape || chordShape(sequence)!==lastChordShape)return false;
+      // Completing the fixed 20 C-triad patterns takes priority if only one remains.
+      return !plan.triad || availableCDeltas(def).some(delta=>delta!==sequence[1].midi-sequence[0].midi);
+    }
+    function recordTrialChord(def,sequence,plan){
+      usedChordTypes.add(def.name);roundChordTypes.add(def.name);
+      sameChordTypeCount=lastChordType===def.name?sameChordTypeCount+1:1;lastChordType=def.name;
+      if(plan.triad)usedCPatterns.add(def.name+':'+(sequence[1].midi-sequence[0].midi));
+      if(plan.normalHard)normalCategoryBag.pop();
+    }
     let lastChordName = null;
     let lastChordShape = null;
     function chordShape(sequence) {
       return sequence.map(p => p.midi - sequence[0].midi).join(',');
     }
-    function makeChordQuestion(count, isRootFirst) {
-      if (instrumentMode === 'guitar') return makeGuitarChordQuestion(count, isRootFirst);
+    function makeChordQuestion(count, isRootFirst, plan=trialChordPlan()) {
+      if(trialMode==='c')isRootFirst=true;
+      if (instrumentMode === 'guitar') return makeGuitarChordQuestion(count, isRootFirst,plan);
       let attempts = 0;
-      if (!difficulty().hard) chordTypeBag = [];
-      else if (!chordTypeBag.length) {
-        chordTypeBag = shuffleMelodies(['basic','basic','basic','basic','basic',
-          'tension','tension','tension','tension','tension']);
-      }
-      const useTension = difficulty().hard && chordTypeBag.at(-1) === 'tension';
-      const availableDefs = difficulty().hard
-        ? (useTension ? tensionChordDefinitions : basicChordDefinitions)
-        : basicChordDefinitions.filter(def => def.name === '' || def.name === 'm');
+      const availableDefs = plan.defs;
 
       const firstCandidates = positions.filter(pos => pos.fret >= 1 && pos.fret <= 10);
 
       while (attempts < 2500) {
         attempts++;
-        const rootPitchIndex = Math.floor(Math.random() * 12);
+        const rootPitchIndex = trialMode==='c'?0:Math.floor(Math.random() * 12);
         const rootName = pitchNames[rootPitchIndex];
         const chordDef = availableDefs[Math.floor(Math.random() * availableDefs.length)];
         const chordName = rootName + chordDef.name;
-        const feature = chordFeatureState(chordDef, count);
-        if (chordName === lastChordName) continue;
+        const feature = plan.triad?null:chordFeatureState(chordDef, count);
+        if (trialMode!=='c' && chordName === lastChordName) continue;
 
         if (firstCandidates.length === 0) break;
         const first = firstCandidates[Math.floor(Math.random() * firstCandidates.length)];
@@ -2056,8 +2110,8 @@ html[lang="en"] .ending-dialog .ending-ok {
           if (maxMidi - minMidi > maxRangeMidi) return false;
 
           if (hasConsecutiveOctave(seq)) return false;
-          if (chordShape(seq) === lastChordShape) return false;
-          if (!acceptsChordFeature(seq, rootPitchIndex, feature)) return false;
+          if (repeatsTrialShape(seq,chordDef,plan)) return false;
+          if (!acceptsChordFeature(seq, rootPitchIndex, feature) || !acceptsTrialPattern(seq,chordDef,plan)) return false;
 
           return true;
         };
@@ -2092,11 +2146,12 @@ html[lang="en"] .ending-dialog .ending-ok {
           recordChordFeature(validSeq, rootPitchIndex, feature);
           lastChordName = chordName;
           lastChordShape = chordShape(validSeq);
-          if (difficulty().hard) chordTypeBag.pop();
+          recordTrialChord(chordDef,validSeq,plan);
           return { sequence: validSeq, titleName: chordName, displayKey: chordName, rootPitchIndex, chordMidiNotes };
         }
       }
 
+      if(!plan.allowRepeatedShape)return makeChordQuestion(count,isRootFirst,{...plan,allowRepeatedShape:true});
       throw new Error('No chord question satisfying the range and repetition rules');
     }
 
@@ -2395,7 +2450,7 @@ html[lang="en"] .ending-dialog .ending-ok {
     }
 
     async function startGame() {
-      if (!['idle', 'result'].includes(game.phase) || startButton.disabled) return;
+      if (!['idle', 'result'].includes(game.phase) || startButton.disabled || trialStats.total>=trialQuestionCount()) return;
       questionTypeSelect.value = "chord"; noteCountSelect.value = "2";
       clearTimeout(judgmentTimer);
       endGesture();
@@ -2658,6 +2713,7 @@ html[lang="en"] .ending-dialog .ending-ok {
   statusBox.append(feverRibbon);
   function feverStage() {
     const state = difficulty();
+    if(trialMode!=='normal')return 0;
     const mode = questionTypeSelect.value;
     feverPeaks[mode] = state.hard ? Math.max(feverPeaks[mode] || 0,state.correct) : 0;
     return !state.hard ? 0 : feverPeaks[mode]>=10 ? 2 : 1;
@@ -2669,14 +2725,14 @@ html[lang="en"] .ending-dialog .ending-ok {
     feverStage();
     const stars=document.createElement('span'); stars.className='streak-stars'; stars.setAttribute('aria-hidden','true');
     const completedStars = Math.floor(state.correct / 5) * 5;
-    for(let i=0;i<state.correct;i++) {
+    for(let i=0;i<(trialMode==='normal'?state.correct:0);i++) {
       const star=document.createElement('span'); star.textContent='★';
       if((i+1)%5===0) star.classList.add('milestone-star');
       else if(i<completedStars) star.classList.add('completed-group-star');
       stars.append(star);
     }
     const label=document.createElement('span'); label.className='streak-label';
-    label.textContent=english ? `${trialStats.total}/15 · ⭐️ ${state.correct}` : `${trialStats.total}/15問 · ⭐️ ${state.correct}個`;
+    label.textContent=`${trialStats.total}/${trialQuestionCount()} ${trialMode==='normal'?'⭐️ '+state.correct:'🐠 '+trialStats.correct}`;
     deckCounter.replaceChildren(stars,label);
     if (!state.hard) oniCompleted[questionTypeSelect.value]=false;
     syncResidentMascot();
@@ -2726,6 +2782,7 @@ html[lang="en"] .ending-dialog .ending-ok {
     subtitle.textContent = correct
       ? (unlocked ? (english ? '5 IN A ROW · HARD MODE UNLOCKED' : '5連続正解！ HARD MODE 突入！') : (english ? 'PERFECT CATCH! · ' : 'お見事！ 音をキャッチ！ · ') + difficulty().correct + (english ? ' STREAK' : ' 連続正解'))
       : (english ? 'Let’s check the correct answer.' : '正解を聴いて、音を確認しよう');
+    if(trialMode!=='normal' && correct)subtitle.textContent=english?'PERFECT CATCH!':'お見事！ 音をキャッチ！';
     if(kind==='unlock') { title.textContent='FEVER START!'; subtitle.textContent=english?'5 IN A ROW · LET THE FEVER BEGIN!\nQuestions get a little harder!':'5連続正解！ フィーバータイム、スタート！\n問題が少し難しくなるよ。'; }
     if(kind==='cheer30' || kind==='cheer40') { title.textContent=kind==='cheer30'?'30 COMBO!':'40 COMBO!'; subtitle.textContent=english?'KEEP THE STREAK ALIVE!':'その連続正解、まだまだ続く！'; }
     if(kind==='hot') { title.textContent=english?'SUPER HOT!':'激アツ!!'; subtitle.textContent=english?'10 CONSECUTIVE HITS · THE OCEAN IS ON FIRE':'10連続正解！ 海が燃える、激アツ突入！'; }
@@ -2781,7 +2838,7 @@ html[lang="en"] .ending-dialog .ending-ok {
     baseShowResult(isNewAnswer);
     if (isNewAnswer) {
       const state=difficulty();
-      celebrationKind = trialStats.total>=15 ? 'clear' : wasHard && !state.hard ? 'end' : correct && state.correct===10 ? 'hot' : correct && !wasHard && state.hard ? 'unlock' : 'normal';
+      celebrationKind = trialStats.total>=trialQuestionCount() ? 'clear' : trialMode!=='normal'?'normal': wasHard && !state.hard ? 'end' : correct && state.correct===10 ? 'hot' : correct && !wasHard && state.hard ? 'unlock' : 'normal';
       if(celebrationKind==='clear') {showArcadeResult(correct,false,'normal');scheduleGameEnding();}
       else if(celebrationKind==='cheer30' && ((game.mode==='chord' && appSettings.firstNote==='root') || (game.mode==='melody' && appSettings.melodyJazz==='off')) && arcadeEnabled && !document.hidden) beginRootChallenge();
       else if(celebrationKind==='oni' && arcadeEnabled && !document.hidden) {
@@ -2789,6 +2846,7 @@ html[lang="en"] .ending-dialog .ending-ok {
         showArcadeResult(true, false, 'streak20');
         scheduleOniParty();
       }
+      else if(trialMode==='c' && trialStats.total===5)showTrialStageNotice(true);
       else showArcadeResult(correct, !wasHard && state.hard, celebrationKind);
     }
     syncArcadeUI();
@@ -3034,24 +3092,29 @@ html[lang="en"] .ending-dialog .ending-ok {
     endingActive=true;game.phase='complete';
     [startButton,replayButton,playChordBtn,instrumentSelect,questionTypeSelect,noteCountSelect,firstNoteControls].forEach(control=>{control.disabled=true;});
     document.body.classList.add('game-cleared');
-    endingBadge.textContent=appSettings.lang==='on'?'★ 15 QUESTIONS COMPLETE ★':'★ 全15問 終了 ★';
+    const count=trialQuestionCount(),perfect=trialMode==='normal' && trialStats.best>=15;
+    endingBadge.textContent=appSettings.lang==='on'?`★ ${count} QUESTIONS COMPLETE ★`:`★ 全${count}問 終了 ★`;
     endingCharacter.alt=appSettings.lang==='on'?'Coral cheering you on for another round':'再チャレンジを応援する海の魔法使い・コーラル';
-    endingTitle.innerHTML=trialStats.best>=15
+    endingTitle.innerHTML=perfect
       ? (appSettings.lang==='on'?'Congratulations!':'ゲームクリア<span class="ending-congratulations-line">おめでとう！</span>')
-      : (appSettings.lang==='on'?'Thanks for playing<br class="desktop-ending-break"> 15 questions!':'15問おつかれさま！');
+      : (appSettings.lang==='on'?`Thanks for playing<br class="desktop-ending-break"> ${count} questions!`:`${count}問おつかれさま！`);
     invitation.textContent=appSettings.lang==='on'
-      ? (trialStats.best>=15 ? 'Let’s take on the other modes in the full version!' : 'Let’s try again and aim for 15 correct in a row!')
-      : (trialStats.best>=15 ? 'フルバージョンで他のモードに挑戦だー！' : '次は15問連続正解をめざして\n再チャレンジしよう♪');
+      ? (perfect ? 'Let’s take on the other modes in the full version!' : 'Let’s try again and aim for 15 correct in a row!')
+      : (perfect ? 'フルバージョンで他のモードに挑戦だー！' : '次は15問連続正解をめざして\n再チャレンジしよう♪');
     if(appSettings.lang==='on') {
-      invitation.innerHTML=trialStats.best>=15
+      invitation.innerHTML=perfect
         ? 'Let’s take on the other modes<br class="desktop-ending-break"> in the full version!'
         : 'Let’s try again and aim<br class="desktop-ending-break"> for 15 correct in a row!';
     }
+    invitation.classList.toggle('trial-experience-speech',trialMode!=='normal');
+    if(trialMode!=='normal')setTrialSpeech(invitation,appSettings.lang==='on'
+      ? ['Once you feel comfortable, ','try Normal mode ','and aim for ','a winning streak♪']
+      : ['ゲームに慣れたら、','通常モードで','連続正解を目指してね♪']);
     endingFull.textContent=appSettings.lang==='on'?'The full version also includes 3/4-note chords, scales, and melodies.':'フルバージョンでは、”3音/4音のコード”、”スケール”、”メロディ”にも挑戦できるよ！';
-    endingOK.textContent=appSettings.lang==='on'?'Try another 15 questions':'もう一度15問にチャレンジ';
+    endingOK.textContent=appSettings.lang==='on'?`Try another ${count} questions`:`もう一度${count}問にチャレンジ`;
     trialPurchase.textContent=appSettings.lang==='on'?'View the full version':'フルバージョンを見る';
     trialPurchase.href=purchaseURLs[appSettings.lang==='on'?'on':'off'];
-    endingStats.textContent=appSettings.lang==='on'?`Correct: ${trialStats.correct} / 15`:`15問中 ${trialStats.correct}問正解`;
+    endingStats.textContent=appSettings.lang==='on'?`Correct: ${trialStats.correct} / ${count}`:`${count}問中 ${trialStats.correct}問正解`;
     showPopupFromTop(endingDialog,endingTitle);
     try {playOniPartyMusic(true);}catch(error){console.warn('Ending music unavailable',error);}
   }
@@ -3059,6 +3122,8 @@ html[lang="en"] .ending-dialog .ending-ok {
     if(!endingActive && force !== true) return;
     trialGeneration++;
     trialStats = {total:0,correct:0,best:0};
+    roundChordTypes.clear();
+    trialSchedule=shuffleMelodies([...Array(8).fill('basic'),...Array(12).fill('tension')]);
     endingActive=false;endingPending=false;clearTimeout(endingDelayTimer);stopArcadeAudio();clearArcade();clearTimeout(judgmentTimer);
     endGesture();stopHeldNote(currentHeldPosition);activeVoices.forEach(stop=>stop());clearBoardMarks();
     Object.values(difficultyStates).forEach(state=>{state.hard=false;state.correct=0;state.wrong=0;});
@@ -3076,6 +3141,7 @@ html[lang="en"] .ending-dialog .ending-ok {
     if(!endingActive) return;
     returnToGameStart();
     playJudgmentSound(true,true);
+    if(trialMode==='c')showTrialStageNotice(false);
   });
 
 
@@ -3178,7 +3244,7 @@ html[lang="en"] .ending-dialog .ending-ok {
     scrollGesture = null;
     instrumentMode = instrumentSelect.value;
     strings = makeStrings();
-    scaleDeck = []; chordTypeBag = []; lastChordName = lastChordShape = null;
+    scaleDeck = []; lastChordName = lastChordShape = null;
     melodyTypeBag = []; melodyTypeRule = null; lastMelodyKey = null;
     recentMelodyShapes.length = recentMelodyIds.length = 0;
     game = { mode:questionTypeSelect.value, phase:'idle', target:[], answers:[], titleName:'', displayKey:'', rootPitchIndex:-1, chordMidiNotes:[] };
@@ -3262,6 +3328,24 @@ html[lang="en"] .ending-dialog .ending-ok {
   [questionTypeSelect,noteCountSelect].forEach(select=>{
     [...select.options].slice(1).forEach(option=>{option.disabled=true;option.hidden=true;});
   });
+  function setTrialSpeech(element,phrases){
+    element.replaceChildren(...phrases.map(text=>{const span=document.createElement('span');span.className='trial-phrase';span.textContent=text;return span;}));
+  }
+  const trialStageDialog=document.createElement('dialog');trialStageDialog.className='trial-stage-dialog';
+  const trialStageFace=document.createElement('div');trialStageFace.className='trial-stage-face';
+  const trialStageImage=document.createElement('img');trialStageImage.src=mascotImage;trialStageImage.alt='Coral';trialStageFace.append(trialStageImage);
+  const trialStageSpeech=document.createElement('p');trialStageSpeech.id='trial-stage-speech';trialStageDialog.setAttribute('aria-labelledby',trialStageSpeech.id);
+  trialStageDialog.append(trialStageFace,trialStageSpeech);document.body.append(trialStageDialog);
+  trialStageDialog.addEventListener('cancel',event=>event.preventDefault());
+  let trialStageTimer;
+  function showTrialStageNotice(advanced){
+    clearTimeout(trialStageTimer);clearArcade();
+    setTrialSpeech(trialStageSpeech,appSettings.lang==='on'
+      ? (advanced?['Now try seventh chords ','and chords with ','added tensions♪']:['Let’s start with ','five triad questions♪'])
+      : (advanced?['ここからは4和音と','テンションを含んだ','問題だよ♪']:['最初は3和音から','5問出題するよ♪']));
+    if(!trialStageDialog.open)trialStageDialog.showModal();
+    trialStageTimer=setTimeout(()=>{trialStageDialog.close();startButton.focus();},3000);
+  }
   const trialBar=document.createElement('div');trialBar.className='trial-bar';
   const trialLabel=document.createElement('span');
   const trialHelp=document.createElement('button');trialHelp.type='button';
@@ -3275,6 +3359,9 @@ html[lang="en"] .ending-dialog .ending-ok {
   const introVersion=document.createElement('a');introVersion.className='intro-version full-version-link';introVersion.target='_blank';introVersion.rel='noopener noreferrer';
   const introLinkNote=document.createElement('small');introLinkNote.className='intro-link-note';
   const introStart=document.createElement('button');introStart.type='button';introStart.className='primary-btn';
+  const introOther=document.createElement('p');
+  const introC=document.createElement('button'),introAll=document.createElement('button');
+  introC.type=introAll.type='button';introC.className=introAll.className='trial-mode-entry';
   const introLanguages=document.createElement('div');introLanguages.className='trial-languages';introLanguages.setAttribute('role','group');
   const introJapanese=document.createElement('button');introJapanese.type='button';introJapanese.textContent='日本語';
   const introEnglish=document.createElement('button');introEnglish.type='button';introEnglish.textContent='English';
@@ -3285,24 +3372,33 @@ html[lang="en"] .ending-dialog .ending-ok {
   }
   introJapanese.addEventListener('click',()=>selectTrialLanguage('off'));
   introEnglish.addEventListener('click',()=>selectTrialLanguage('on'));
-  trialIntro.append(coral,introTitle,introLanguages,introText,introPath,introFull,introVersion,introLinkNote,introStart);document.body.append(trialIntro);
+  trialIntro.append(coral,introTitle,introLanguages,introText,introPath,introFull,introVersion,introLinkNote,introStart,introOther,introC,introAll);document.body.append(trialIntro);
   function updateTrialText(){
     const en=appSettings.lang==='on';
-    trialLabel.textContent=en?'TRIAL · Chord / 2 notes · 15 questions per round':'お試し版 · コード／2音 · 全15問';
+    trialLabel.textContent=en?`TRIAL · ${trialModeName()} · ${trialQuestionCount()} questions`:`お試し版 · ${trialModeName()} · 全${trialQuestionCount()}問`;
     trialHelp.textContent=en?'Coral’s guide':'コーラルのガイド';
     introTitle.innerHTML=en?'Hello!<br>I’m Coral,<br>the sea magician♪':'こんにちは！<br>私は海の魔法使い<br>コーラルだよ♪';
     coral.alt=en?'Coral, the sea magician':'海の魔法使い・コーラル';
     introLanguages.setAttribute('aria-label',en?'Language':'言語');
     introJapanese.setAttribute('aria-pressed',String(!en));introEnglish.setAttribute('aria-pressed',String(en));
     introText.textContent=en?"Let’s play together under the sea and improve your musical ear!\n\nPlaying is easy! Press ‘Play Question’ and listen to the two notes, then tap the fretboard in the order you heard them. If you make a mistake while answering, press ‘Listen Again’ to start your answer over.\n\nTo move the fretboard left or right, swipe sideways on the scroll area below the fretboard.":"この海の中で、私と一緒にゲームして音感をもっと良くしちゃおう！\n\nゲームの操作は簡単だよ。「問題を出す」を押して2つの音を聴いたら、聴こえた順に指板をタップしてね。答える途中で間違えたら、「もう一度聴く」でやり直せるよ。\n\n指板を左右に動かす時は、指板の下のスクロールエリアを左右にスワイプだよ。";
-    introPath.textContent=en?"Trial: 2-note chord questions only\nResults after 15 questions":"お試し版は2音のコード問題のみ\n全15問で結果発表";
-    introFull.textContent=en?"After five correct answers in a row, the questions get a little harder. You can switch between guitar and bass, change the playback speed, and more, so try different settings and play as often as you like.\n\nBy the way, the full version also includes 3- and 4-note chords, scales, and melodies♪ If you’re interested, take a look at the link below.":"5問連続正解すると問題がちょっと難しくなるよ。ギターとベースの切り替えや問題の再生スピードの切り替えなどができるから、いろいろ試して何度でも遊んでね。\n\nちなみにフルバージョンでは3音・4音のコード、スケール、メロディの問題にも挑戦できるんだ♪もしよかったらリンクを見てみてね。";
+    introPath.textContent=en?"Trial: 2-note chord questions only\nNormal mode: aim for 15 correct in a row":"お試し版は2音のコード問題のみ\n通常モード：全15問連続正解を目指そう";
+    introFull.textContent=en?"In Normal mode, after five correct answers in a row, the questions get a little harder. You can switch between guitar and bass, change the playback speed, and more, so try different settings and play as often as you like.\n\nBy the way, the full version also includes 3- and 4-note chords, scales, and melodies♪ If you’re interested, take a look at the link below.":"通常モードでは5問連続正解すると問題がちょっと難しくなるよ。ギターとベースの切り替えや問題の再生スピードの切り替えなどができるから、いろいろ試して何度でも遊んでね。\n\nちなみにフルバージョンでは3音・4音のコード、スケール、メロディの問題にも挑戦できるんだ♪もしよかったらリンクを見てみてね。";
     introVersion.textContent=en?'View the full version':'フルバージョンを見る';
     introVersion.href=purchaseURLs[en?'on':'off'];
     introLinkNote.hidden=true;
-    introStart.textContent=en?'Let’s play!':'さっそく遊ぶ';
+    introStart.textContent=en?'Start game':'ゲームを始める';
+    introOther.textContent=en?'You can also try these modes in the trial version.':'お試し版では以下のモードでも遊べます。';
+    introC.textContent=en?'C-root experience · 15 questions':'Cコード限定体験モード（全15問）';
+    introAll.textContent=en?'All-chord experience · 20 questions':'全コード体験モード（全20問）';
   }
-  introStart.addEventListener('click',()=>{returnToGameStart(true);trialIntro.close();playJudgmentSound(true,true);startButton.focus();});
+  function startTrialMode(mode){
+    trialMode=mode;returnToGameStart(true);trialIntro.close();updateTrialText();playJudgmentSound(true,true);startButton.focus();
+    if(mode==='c')requestAnimationFrame(()=>showTrialStageNotice(false));
+  }
+  introStart.addEventListener('click',()=>startTrialMode('normal'));
+  introC.addEventListener('click',()=>startTrialMode('c'));
+  introAll.addEventListener('click',()=>startTrialMode('all'));
   trialHelp.addEventListener('click',()=>{updateTrialText();showPopupFromTop(trialIntro,introTitle);});
   const originalUpdateStaticTexts=updateStaticTexts;
   updateStaticTexts=function(){originalUpdateStaticTexts();updateTrialText();};
