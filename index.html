@@ -686,6 +686,9 @@ html[lang="en"] .trial-phrase+.trial-phrase{margin-left:.25em;}
   .trial-dialog .trial-path{font-size:clamp(12px,3.8vw,16px);padding-inline:8px;}
   html[lang="en"] .trial-bar>span{white-space:pre-line;min-width:0;}
 }
+.tour-notice p{font-size:clamp(18px,4.5vw,22px);}
+.tour-notice .trial-phrase{display:block;}
+html[lang="en"] .tour-notice .trial-phrase{margin-left:0;}
 </style>
 </head>
 <body>
@@ -1310,8 +1313,8 @@ html[lang="en"] .trial-phrase+.trial-phrase{margin-left:.25em;}
     const roundChordTypes = new Set();
     function trialQuestionCount(){return trialMode==='all'?21:15;}
     function trialModeName(){return appSettings.lang==='on'
-      ? ({normal:'Normal mode',c:'C-root experience',all:'All-chord experience'})[trialMode]
-      : ({normal:'通常モード',c:'Cコード限定体験モード',all:'全コード体験モード'})[trialMode];}
+      ? ({normal:'Normal mode',c:'C-root mode',all:'All-chord experience'})[trialMode]
+      : ({normal:'通常モード',c:'Cコード限定モード',all:'全コード体験モード'})[trialMode];}
     let trialStats = { total:0, correct:0, best:0 };
     function recordResult(correct) {
       const state = difficulty();
@@ -3407,10 +3410,14 @@ html[lang="en"] .trial-phrase+.trial-phrase{margin-left:.25em;}
   let trialStageTimer;
   function showTrialStageNotice(advanced){
     clearTimeout(trialStageTimer);clearArcade();
-    if(!advanced)playJudgmentSound(true,true);
+    if(advanced!==true)playJudgmentSound(true,true);
+    trialStageDialog.classList.toggle('tour-notice',advanced==='all');
     setTrialSpeech(trialStageSpeech,appSettings.lang==='on'
       ? (advanced?['Now try four-note chords♪']:['Let’s start with 5',' triad questions♪'])
       : (advanced?['ここからは4和音の','問題だよ♪']:['最初は3和音から','5問出題するよ♪']));
+    if(advanced==='all')setTrialSpeech(trialStageSpeech,appSettings.lang==='on'
+      ? ['Let’s explore','the 21 chord types','featured in this game♪']
+      : ['このゲームで出題される','21種類のコード・タイプを','体験しよう♪']);
     if(!trialStageDialog.open)trialStageDialog.showModal();
     trialStageTimer=setTimeout(()=>{trialStageDialog.close();focusTrialStart();},3000);
   }
@@ -3462,7 +3469,7 @@ html[lang="en"] .trial-phrase+.trial-phrase{margin-left:.25em;}
   }
   function startTrialMode(mode){
     trialMode=mode;returnToGameStart(true);trialIntro.close();updateTrialText();focusTrialStart();
-    if(mode==='c'){if(appSettings.sound==='exists')ensureAudio();requestAnimationFrame(()=>showTrialStageNotice(false));}
+    if(mode==='c'||mode==='all'){if(appSettings.sound==='exists')ensureAudio();requestAnimationFrame(()=>showTrialStageNotice(mode==='all'?'all':false));}
     else playJudgmentSound(true,true);
   }
   introStart.addEventListener('click',()=>startTrialMode('normal'));
