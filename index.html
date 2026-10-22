@@ -1307,9 +1307,8 @@ html[lang="en"] .trial-phrase+.trial-phrase{margin-left:.25em;}
       startButton.focus({preventScroll:true});
       if(!trialKeyboardNavigation)startButton.blur();
     }
-    let trialSchedule = [];
     const roundChordTypes = new Set();
-    function trialQuestionCount(){return trialMode==='all'?20:15;}
+    function trialQuestionCount(){return trialMode==='all'?21:15;}
     function trialModeName(){return appSettings.lang==='on'
       ? ({normal:'Normal mode',c:'C-root experience',all:'All-chord experience'})[trialMode]
       : ({normal:'通常モード',c:'Cコード限定体験モード',all:'全コード体験モード'})[trialMode];}
@@ -1353,7 +1352,7 @@ html[lang="en"] .trial-phrase+.trial-phrase{margin-left:.25em;}
       playChordBtn.disabled = game.phase === 'idle' || mode === 'scale';
       if (mode === 'chord') {
         noteCountGroup.style.display = 'flex';
-        firstNoteGroup.style.display = trialMode==='c'?'none':'block';
+        firstNoteGroup.style.display = trialMode!=='normal'?'none':'block';
         targetLabel.textContent = t('chordTitleLabel');
         targetTitle.textContent = '---';
       } else {
@@ -2030,7 +2029,7 @@ html[lang="en"] .trial-phrase+.trial-phrase{margin-left:.25em;}
         if(triad)return {defs:[basicChordDefinitions[[0,1,5,6,8][trialStats.total]]],triad:true,normalHard:false};
         defs=basicChordDefinitions.filter(d=>d.intervals.length===4);
       }else if(trialMode==='all'){
-        defs=trialSchedule[trialStats.total]==='tension'?tensionChordDefinitions:basicChordDefinitions;
+        return {defs:[allChordTourDefinition(trialStats.total)],triad:false,normalHard:false};
       }else if(!difficulty().hard){
         defs=basicChordDefinitions.slice(0,2).filter(d=>sameChordTypeCount<2||d.name!==lastChordType);
         return {defs,triad:false,normalHard:false};
@@ -2066,6 +2065,7 @@ html[lang="en"] .trial-phrase+.trial-phrase{margin-left:.25em;}
       return sequence.map(p => p.midi - sequence[0].midi).join(',');
     }
     function makeChordQuestion(count, isRootFirst, plan=trialChordPlan()) {
+      if(trialMode==='all')return makeAllChordTourQuestion(trialStats.total);
       if(trialMode==='c')isRootFirst=true;
       if (instrumentMode === 'guitar') return makeGuitarChordQuestion(count, isRootFirst,plan);
       let attempts = 0;
@@ -2171,6 +2171,48 @@ html[lang="en"] .trial-phrase+.trial-phrase{margin-left:.25em;}
 
       if(!plan.allowRepeatedShape)return makeChordQuestion(count,isRootFirst,{...plan,allowRepeatedShape:true});
       throw new Error('No chord question satisfying the range and repetition rules');
+    }
+
+
+    const allChordTourOrder=['','m','maj7','m7','7','m7♭5','dim','aug','sus4','add9','6/9','maj9','m(add9)','m9','m11','9','7(♭9)','7(♯9)','7(♯11)','13','7(♭13)'];
+    // Independent page-lifetime interval history; retained across retries/instrument changes.
+    const allChordTourIntervals=new Map();
+    function allChordTourDefinition(index){
+      const name=allChordTourOrder[index];
+      const def=[...basicChordDefinitions,...tensionChordDefinitions].find(d=>d.name===name);
+      if(!def)throw new Error('Chord tour is complete');
+      return def;
+    }
+    function makeAllChordTourQuestion(index){
+      const def=allChordTourDefinition(index);
+      // Extensions retain their compound octave. A sixth is nine semitones.
+      const intervals=def.intervals.filter(n=>def.isTension?n>=9:n>0);
+      let history=allChordTourIntervals.get(def.name);
+      if(!history){history={remaining:[],last:null};allChordTourIntervals.set(def.name,history);}
+      if(!history.remaining.length)history.remaining=shuffleMelodies(intervals);
+      const choices=history.remaining.filter(n=>intervals.length===1||n!==history.last);
+      const interval=choices[0]??history.remaining[0];
+      const root=positions.find(p=>p.string.number===(instrumentMode==='guitar'?5:4)&&p.fret===(instrumentMode==='guitar'?3:8));
+      if(!root)throw new Error('C root position unavailable');
+      const targetMidi=root.midi+interval;
+      let candidates=positions.filter(p=>p.midi===targetMidi);
+      let form=null;
+      if(instrumentMode==='guitar'){
+        const forms=guitarChordForms(0,def.intervals);
+        if(!forms.length)throw new Error('No playable chord tour voicing');
+        form=forms.find(f=>f.some(n=>n.stringIndex===4&&n.fret===3)&&f.some(n=>n.midi===targetMidi))||forms[0];
+        // Prefer notes in the chord voicing when it also includes the fixed C anchor.
+        // Some chords (e.g. Cm11) use a different valid voicing for chord playback.
+        if(form.some(n=>n.stringIndex===4&&n.fret===3)){
+          const matching=candidates.filter(p=>form.some(n=>n.midi===p.midi&&n.stringIndex+1===p.string.number&&n.fret===p.fret));
+          if(matching.length)candidates=matching;
+        }
+      }
+      candidates.sort((a,b)=>Math.abs(a.fret-root.fret)-Math.abs(b.fret-root.fret)||a.string.number-b.string.number);
+      if(!candidates.length)throw new Error('Chord tour target unavailable');
+      const chordMidiNotes=form?form.map(n=>n.midi):chordPlaybackNotes(0,def.intervals,root.midi);
+      history.remaining.splice(history.remaining.indexOf(interval),1);history.last=interval;
+      return {sequence:[root,candidates[0]],titleName:'C'+def.name,displayKey:'C'+def.name,rootPitchIndex:0,chordMidiNotes,guitarChordForm:form};
     }
 
     function makeScaleQuestion() {
@@ -3143,7 +3185,6 @@ html[lang="en"] .trial-phrase+.trial-phrase{margin-left:.25em;}
     trialGeneration++;
     trialStats = {total:0,correct:0,best:0};
     roundChordTypes.clear();
-    trialSchedule=shuffleMelodies([...Array(8).fill('basic'),...Array(12).fill('tension')]);
     endingActive=false;endingPending=false;clearTimeout(endingDelayTimer);stopArcadeAudio();clearArcade();clearTimeout(judgmentTimer);
     endGesture();stopHeldNote(currentHeldPosition);activeVoices.forEach(stop=>stop());clearBoardMarks();
     Object.values(difficultyStates).forEach(state=>{state.hard=false;state.correct=0;state.wrong=0;});
@@ -3417,7 +3458,7 @@ html[lang="en"] .trial-phrase+.trial-phrase{margin-left:.25em;}
     introStart.textContent=en?'Start game':'ゲームを始める';
     introOther.textContent=en?'You can also try these modes in the trial version.':'お試し版では以下のモードでも遊べます。';
     introC.textContent=en?'C-root mode\n(15 questions)':'Cコード限定モード\n（全15問）';
-    introAll.textContent=en?'All-chord experience\n(20 questions)':'全コード体験モード\n（全20問）';
+    introAll.textContent=en?'All-chord experience\n(21 questions)':'全コード体験モード\n（全21問）';
   }
   function startTrialMode(mode){
     trialMode=mode;returnToGameStart(true);trialIntro.close();updateTrialText();focusTrialStart();
