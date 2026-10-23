@@ -689,6 +689,7 @@ html[lang="en"] .trial-phrase+.trial-phrase{margin-left:.25em;}
 .tour-notice p{font-size:clamp(18px,4.5vw,22px);}
 .tour-notice .trial-phrase{display:block;}
 html[lang="en"] .tour-notice .trial-phrase{margin-left:0;}
+#trial-stage-speech{white-space:pre-line;}
 </style>
 </head>
 <body>
@@ -2894,7 +2895,7 @@ html[lang="en"] .tour-notice .trial-phrase{margin-left:0;}
         showArcadeResult(true, false, 'streak20');
         scheduleOniParty();
       }
-      else if(trialMode==='c' && trialStats.total===5)showTrialStageNotice(true);
+
       else showArcadeResult(correct, !wasHard && state.hard, celebrationKind);
     }
     syncArcadeUI();
@@ -3160,7 +3161,9 @@ html[lang="en"] .tour-notice .trial-phrase{margin-left:0;}
       ? ['Once you feel comfortable, ','try Normal mode ','and aim for ','a winning streak♪']
       : ['ゲームに慣れたら、','通常モードで','連続正解を目指してね♪']);
     endingFull.textContent=appSettings.lang==='on'?'The full version also includes 3/4-note chords, scales, and melodies.':'フルバージョンでは、”3音/4音のコード”、”スケール”、”メロディ”にも挑戦できるよ！';
-    endingOK.textContent=appSettings.lang==='on'?`Try another ${count} questions`:`もう一度${count}問にチャレンジ`;
+    endingOK.textContent=trialMode==='normal'
+      ? (appSettings.lang==='on'?`Try another ${count} questions`:`もう一度${count}問にチャレンジ`)
+      : (appSettings.lang==='on'?'Play again':'もう一度プレイする');
     endingHome.textContent=appSettings.lang==='on'?'Back to the start screen':'最初の画面に戻る';
     trialPurchase.textContent=appSettings.lang==='on'?'View the full version':'フルバージョンを見る';
     trialPurchase.href=purchaseURLs[appSettings.lang==='on'?'on':'off'];
@@ -3195,7 +3198,7 @@ html[lang="en"] .tour-notice .trial-phrase{margin-left:0;}
   endingOK.addEventListener('click',()=>{
     if(!endingActive) return;
     returnToGameStart();
-    if(trialMode==='c')showTrialStageNotice(false);
+    if(trialMode==='c'||trialMode==='all')showTrialStageNotice(trialMode==='all'?'all':false);
     else playJudgmentSound(true,true);
   });
 
@@ -3397,9 +3400,7 @@ html[lang="en"] .tour-notice .trial-phrase{margin-left:0;}
     clearTimeout(trialStageTimer);clearArcade();
     if(advanced!==true)playJudgmentSound(true,true);
     trialStageDialog.classList.toggle('tour-notice',advanced==='all');
-    setTrialSpeech(trialStageSpeech,appSettings.lang==='on'
-      ? (advanced?['Now try four-note chords♪']:['Let’s start with 5',' triad questions♪'])
-      : (advanced?['ここからは4和音の','問題だよ♪']:['最初は3和音から','5問出題するよ♪']));
+    trialStageSpeech.textContent=appSettings.lang==='on'?'First, 5 triad questions,\nthen 10 four-note chord questions♪':'最初に3和音から5問、\n次に4和音から10問出題するよ♪';
     if(advanced==='all')setTrialSpeech(trialStageSpeech,appSettings.lang==='on'
       ? ['Let’s explore','the 21 chord types','featured in this game♪']
       : ['このゲームで出題される','21種類のコード・タイプを','体験しよう♪']);
