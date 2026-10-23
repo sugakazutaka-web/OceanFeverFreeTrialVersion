@@ -1354,7 +1354,7 @@ html[lang="en"] .tour-notice .trial-phrase{margin-left:0;}
       playChordBtn.hidden = mode === 'scale';
       playChordBtn.disabled = game.phase === 'idle' || mode === 'scale';
       if (mode === 'chord') {
-        noteCountGroup.style.display = 'flex';
+        noteCountGroup.style.display = trialMode==='all'?'none':'flex';
         firstNoteGroup.style.display = trialMode!=='normal'?'none':'block';
         targetLabel.textContent = t('chordTitleLabel');
         targetTitle.textContent = '---';
@@ -2178,8 +2178,6 @@ html[lang="en"] .tour-notice .trial-phrase{margin-left:0;}
 
 
     const allChordTourOrder=['','m','maj7','m7','7','m7♭5','dim','aug','sus4','add9','6/9','maj9','m(add9)','m9','m11','9','7(♭9)','7(♯9)','7(♯11)','13','7(♭13)'];
-    // Independent page-lifetime interval history; retained across retries/instrument changes.
-    const allChordTourIntervals=new Map();
     function allChordTourDefinition(index){
       const name=allChordTourOrder[index];
       const def=[...basicChordDefinitions,...tensionChordDefinitions].find(d=>d.name===name);
@@ -2188,34 +2186,21 @@ html[lang="en"] .tour-notice .trial-phrase{margin-left:0;}
     }
     function makeAllChordTourQuestion(index){
       const def=allChordTourDefinition(index);
-      // Extensions retain their compound octave. A sixth is nine semitones.
-      const intervals=def.intervals.filter(n=>def.isTension?n>=9:n>0);
-      let history=allChordTourIntervals.get(def.name);
-      if(!history){history={remaining:[],last:null};allChordTourIntervals.set(def.name,history);}
-      if(!history.remaining.length)history.remaining=shuffleMelodies(intervals);
-      const choices=history.remaining.filter(n=>intervals.length===1||n!==history.last);
-      const interval=choices[0]??history.remaining[0];
       const root=positions.find(p=>p.string.number===(instrumentMode==='guitar'?5:4)&&p.fret===(instrumentMode==='guitar'?3:8));
       if(!root)throw new Error('C root position unavailable');
-      const targetMidi=root.midi+interval;
-      let candidates=positions.filter(p=>p.midi===targetMidi);
-      let form=null;
-      if(instrumentMode==='guitar'){
-        const forms=guitarChordForms(0,def.intervals);
-        if(!forms.length)throw new Error('No playable chord tour voicing');
-        form=forms.find(f=>f.some(n=>n.stringIndex===4&&n.fret===3)&&f.some(n=>n.midi===targetMidi))||forms[0];
-        // Prefer notes in the chord voicing when it also includes the fixed C anchor.
-        // Some chords (e.g. Cm11) use a different valid voicing for chord playback.
-        if(form.some(n=>n.stringIndex===4&&n.fret===3)){
-          const matching=candidates.filter(p=>form.some(n=>n.midi===p.midi&&n.stringIndex+1===p.string.number&&n.fret===p.fret));
-          if(matching.length)candidates=matching;
-        }
-      }
-      candidates.sort((a,b)=>Math.abs(a.fret-root.fret)-Math.abs(b.fret-root.fret)||a.string.number-b.string.number);
-      if(!candidates.length)throw new Error('Chord tour target unavailable');
+      // Ascending chord tones are independent of the guitar's chord voicing.
+      // Keep ninths, elevenths and thirteenths in their compound octave.
+      const sequence=[...new Set(def.intervals)].sort((a,b)=>a-b).map(interval=>{
+        if(interval===0)return root;
+        const candidates=positions.filter(p=>p.midi===root.midi+interval);
+        candidates.sort((a,b)=>Math.abs(a.fret-root.fret)-Math.abs(b.fret-root.fret)||a.string.number-b.string.number);
+        if(!candidates.length)throw new Error('Chord tour tone unavailable');
+        return candidates[0];
+      });
+      const form=instrumentMode==='guitar'?guitarChordForms(0,def.intervals)[0]:null;
+      if(instrumentMode==='guitar'&&!form)throw new Error('No playable chord tour voicing');
       const chordMidiNotes=form?form.map(n=>n.midi):chordPlaybackNotes(0,def.intervals,root.midi);
-      history.remaining.splice(history.remaining.indexOf(interval),1);history.last=interval;
-      return {sequence:[root,candidates[0]],titleName:'C'+def.name,displayKey:'C'+def.name,rootPitchIndex:0,chordMidiNotes,guitarChordForm:form};
+      return {sequence,titleName:'C'+def.name,displayKey:'C'+def.name,rootPitchIndex:0,chordMidiNotes,guitarChordForm:form};
     }
 
     function makeScaleQuestion() {
@@ -3456,8 +3441,8 @@ html[lang="en"] .tour-notice .trial-phrase{margin-left:0;}
     coral.alt=en?'Coral, the sea magician':'海の魔法使い・コーラル';
     introLanguages.setAttribute('aria-label',en?'Language':'言語');
     introJapanese.setAttribute('aria-pressed',String(!en));introEnglish.setAttribute('aria-pressed',String(en));
-    introText.textContent=en?"Let’s play together under the sea and improve your musical ear!\n\nPlaying is easy! Press ‘Play Question’ and listen to the two notes, then tap the fretboard in the order you heard them. If you make a mistake while answering, press ‘Listen Again’ to start your answer over.\n\nTo move the fretboard left or right, swipe sideways on the scroll area below the fretboard.":"この海の中で、私と一緒にゲームして音感をもっと良くしちゃおう！\n\nゲームの操作は簡単だよ。「問題を出す」を押して2つの音を聴いたら、聴こえた順に指板をタップしてね。答える途中で間違えたら、「もう一度聴く」でやり直せるよ。\n\n指板を左右に動かす時は、指板の下のスクロールエリアを左右にスワイプだよ。";
-    introPath.textContent=en?"Trial: 2-note chord questions only\nNormal mode: aim for 15 correct in a row":"お試し版は2音のコード問題のみ\n通常モード：全15問連続正解を目指そう";
+    introText.textContent=en?"Let’s play together under the sea and improve your musical ear!\n\nPlaying is easy! Press ‘Play Question’ and listen to the notes, then tap the fretboard in the order you heard them. If you make a mistake while answering, press ‘Listen Again’ to start your answer over.\n\nTo move the fretboard left or right, swipe sideways on the scroll area below the fretboard.":"この海の中で、私と一緒にゲームして音感をもっと良くしちゃおう！\n\nゲームの操作は簡単だよ。「問題を出す」を押して問題の音を聴いたら、聴こえた順に指板をタップしてね。答える途中で間違えたら、「もう一度聴く」でやり直せるよ。\n\n指板を左右に動かす時は、指板の下のスクロールエリアを左右にスワイプだよ。";
+    introPath.textContent=en?"Normal / C-root mode: 2 notes\nAll-chord experience: all chord tones":"通常・Cコード限定モードは2音問題\n全コード体験モードはコードの全構成音";
     introFull.textContent=en?"In Normal mode, after five correct answers in a row, the questions get a little harder. You can switch between guitar and bass, change the playback speed, and more, so try different settings and play as often as you like.\n\nBy the way, the full version also includes 3- and 4-note chords, scales, and melodies♪ If you’re interested, take a look at the link below.":"通常モードでは5問連続正解すると問題がちょっと難しくなるよ。ギターとベースの切り替えや問題の再生スピードの切り替えなどができるから、いろいろ試して何度でも遊んでね。\n\nちなみにフルバージョンでは3音・4音のコード、スケール、メロディの問題にも挑戦できるんだ♪もしよかったらリンクを見てみてね。";
     introVersion.textContent=en?'View the full version':'フルバージョンを見る';
     introVersion.href=purchaseURLs[en?'on':'off'];
