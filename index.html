@@ -3402,8 +3402,8 @@ html[lang="en"] .tour-notice .trial-phrase{margin-left:0;}
     trialStageDialog.classList.toggle('tour-notice',advanced==='all');
     trialStageSpeech.textContent=appSettings.lang==='on'?'First, 5 triad questions,\nthen 10 four-note chord questions♪':'最初に3和音から5問、\n次に4和音から10問出題するよ♪';
     if(advanced==='all')setTrialSpeech(trialStageSpeech,appSettings.lang==='on'
-      ? ['Let’s explore','the 21 chord types','featured in this game♪']
-      : ['このゲームで出題される','21種類のコード・タイプを','体験しよう♪']);
+      ? ['Let’s explore','the 21 chord types','featured in this trial version♪']
+      : ['お試し版で出題される','21種類のコード・タイプを','体験しよう♪']);
     if(!trialStageDialog.open)trialStageDialog.showModal();
     trialStageTimer=setTimeout(()=>{trialStageDialog.close();focusTrialStart();},3000);
   }
@@ -3451,7 +3451,7 @@ html[lang="en"] .tour-notice .trial-phrase{margin-left:0;}
     introStart.textContent=en?'Start game':'ゲームを始める';
     introOther.textContent=en?'You can also try these modes in the trial version.':'お試し版では以下のモードでも遊べます。';
     introC.textContent=en?'C-root mode\n(15 questions)':'Cコード限定モード\n（全15問）';
-    introAll.textContent=en?'All-chord experience\n(21 questions)':'全コード体験モード\n（全21問）';
+    introAll.textContent=en?'All-chord experience\nTrial version (21 questions)':'全コード体験モード\nお試し版（全21問）';
   }
   function startTrialMode(mode){
     trialMode=mode;returnToGameStart(true);trialIntro.close();updateTrialText();focusTrialStart();
